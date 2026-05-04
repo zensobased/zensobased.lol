@@ -104,14 +104,67 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // MP3 Album Art Extraction Function
+    async function extractAlbumArt(audioUrl) {
+        try {
+            const response = await fetch(audioUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            
+            // Look for ID3 tags (album art is stored in ID3v2 tags)
+            // ID3v2 header starts with "ID3"
+            let id3Start = -1;
+            for (let i = 0; i < Math.min(10, uint8Array.length); i++) {
+                if (uint8Array[i] === 73 && uint8Array[i + 1] === 68 && uint8Array[i + 2] === 68) { // "ID3"
+                    id3Start = i;
+                    break;
+                }
+            }
+            
+            if (id3Start === -1) return null;
+            
+            // Look for APIC (Attached Picture) frame
+            for (let i = id3Start + 10; i < uint8Array.length - 4; i++) {
+                if (uint8Array[i] === 65 && uint8Array[i + 1] === 80 && uint8Array[i + 2] === 73 && uint8Array[i + 3] === 67) { // "APIC"
+                    // Skip frame header (10 bytes) and find image data
+                    let pos = i + 10;
+                    
+                    // Skip text encoding (1 byte)
+                    pos++;
+                    
+                    // Skip MIME type (null-terminated string)
+                    while (pos < uint8Array.length && uint8Array[pos] !== 0) pos++;
+                    pos++;
+                    
+                    // Skip picture type (1 byte)
+                    pos++;
+                    
+                    // Skip description (null-terminated string)
+                    while (pos < uint8Array.length && uint8Array[pos] !== 0) pos++;
+                    pos++;
+                    
+                    // Extract image data
+                    const imageData = uint8Array.slice(pos);
+                    const blob = new Blob([imageData], { type: 'image/jpeg' });
+                    return URL.createObjectURL(blob);
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.log('Could not extract album art:', error);
+            return null;
+        }
+    }
+
     // Music Player Functionality
     class MusicPlayer {
         constructor() {
             this.tracks = [
                 {
-                    title: "Waiting",
-                    artist: "Leverfall",
-                    url: "https://cdn.discordapp.com/attachments/1477375205579034657/1477716535526166692/cz.mp3?ex=69a5c644&is=69a474c4&hm=c7bdc6df4124be1f42c3a2b921e346092e75ed6269c7c513875a42bd268235a4&",
+                    title: "Masked Up",
+                    artist: "nettspend",
+                    url: "../masked up.mp3",
                     duration: "0:00"
                 }
             ];
@@ -126,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             this.initializeElements();
             this.bindEvents();
-            this.loadTrack(0);
+            this.initializeTrack();
         }
         
         initializeElements() {
@@ -140,6 +193,10 @@ document.addEventListener('DOMContentLoaded', function() {
             this.trackTitle = document.querySelector('.track-title');
             this.artistName = document.querySelector('.artist-name');
             this.albumArt = document.querySelector('.album-art');
+        }
+        
+        async initializeTrack() {
+            await this.loadTrack(0);
         }
         
         bindEvents() {
@@ -171,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        loadTrack(index) {
+        async loadTrack(index) {
             const track = this.tracks[index];
             this.audio.src = track.url;
             this.trackTitle.textContent = track.title;
@@ -179,8 +236,14 @@ document.addEventListener('DOMContentLoaded', function() {
             this.totalTimeEl.textContent = track.duration;
             this.currentTrackIndex = index;
             
-            // Update album art with the Spotify cover image
-            this.albumArt.src = "https://i.scdn.co/image/ab67616d0000b2731d11f6a209d5db90b4f68e6f";
+            // Try to extract album art from MP3
+            const albumArtUrl = await extractAlbumArt(track.url);
+            if (albumArtUrl) {
+                this.albumArt.src = albumArtUrl;
+            } else {
+                // Fallback to default album art if extraction fails
+                this.albumArt.src = "https://i.scdn.co/image/ab67616d0000b2731d11f6a209d5db90b4f68e6f";
+            }
             
             this.resetProgress();
         }
@@ -205,17 +268,17 @@ document.addEventListener('DOMContentLoaded', function() {
             this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         }
         
-        previousTrack() {
+        async previousTrack() {
             this.currentTrackIndex = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length;
-            this.loadTrack(this.currentTrackIndex);
+            await this.loadTrack(this.currentTrackIndex);
             if (this.isPlaying) {
                 this.play();
             }
         }
         
-        nextTrack() {
+        async nextTrack() {
             this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length;
-            this.loadTrack(this.currentTrackIndex);
+            await this.loadTrack(this.currentTrackIndex);
             if (this.isPlaying) {
                 this.play();
             }
@@ -266,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Discord Rich Presence Functionality with Lanyard API
     class DiscordRichPresence {
         constructor() {
-            this.userId = '356304991553847307';
+            this.userId = '945118422331686962';
             this.initializeElements();
             this.fetchLanyardData();
             this.startPolling();
@@ -415,14 +478,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusStyles = document.createElement('style');
     statusStyles.textContent = `
         .discord-status-indicator.idle { background: #faa81a; box-shadow: 0 0 10px #faa81a; }
-        .discord-status-indicator.dnd { background: #ed4245; box-shadow: 0 0 10px #ed4245; }
-        .discord-status-indicator.offline { background: #747f8d; box-shadow: 0 0 10px #747f8d; }
     `;
     document.head.appendChild(statusStyles);
-    
+
     // Initialize Discord Rich Presence
     const discordPresence = new DiscordRichPresence();
-    
+
     // 3D Discord Card Mouse Tracking Effect
     const discordCard = document.querySelector('.discord-card');
     if (discordCard) {
@@ -489,9 +550,137 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // 3D Weather Card Mouse Tracking Effect
+    const weatherCard = document.querySelector('.weather-card');
+    if (weatherCard) {
+        weatherCard.addEventListener('mousemove', (e) => {
+            const rect = weatherCard.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = (y - centerY) / 15;
+            const rotateY = (centerX - x) / 15;
+            
+            weatherCard.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+        });
+        
+        weatherCard.addEventListener('mouseleave', () => {
+            weatherCard.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px)';
+        });
+    }
+
+    // Weather Widget Functionality
+    async function updateWeather() {
+        const weatherTemp = document.querySelector('.weather-temp');
+        const weatherDesc = document.querySelector('.weather-desc');
+        const weatherWind = document.querySelector('.weather-wind');
+        const weatherHumidity = document.querySelector('.weather-humidity');
+        const weatherCity = document.querySelector('.weather-city');
+        const weatherIcon = document.querySelector('.weather-icon');
+
+        // WeatherAPI.com (free tier, no location required)
+        const apiKey = '28af12fea3a340cf8c6143500260405'; // Get free API key from https://www.weatherapi.com/
+        const city = 'Jacksonville';
+        
+        try {
+            // Use WeatherAPI.com for Jacksonville, Florida
+            const response = await fetch(
+                `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${city}&aqi=no`
+            );
+            
+            if (!response.ok) {
+                throw new Error('Weather API request failed');
+            }
+            
+            const data = await response.json();
+            
+            // Update weather display
+            if (weatherTemp) weatherTemp.textContent = `${Math.round(data.current.temp_f)}°F`;
+            if (weatherDesc) weatherDesc.textContent = data.current.condition.text.toLowerCase();
+            if (weatherWind) weatherWind.textContent = `${data.current.wind_mph} mph`;
+            if (weatherHumidity) weatherHumidity.textContent = `${data.current.humidity}%`;
+            if (weatherCity) weatherCity.textContent = data.location.name;
+            
+            // Update weather icon based on conditions
+            const iconMap = {
+                1000: 'fa-sun',           // Sunny
+                1003: 'fa-cloud-sun',     // Partly cloudy
+                1006: 'fa-cloud',         // Cloudy
+                1009: 'fa-cloud',         // Overcast
+                1030: 'fa-smog',          // Mist
+                1063: 'fa-cloud-sun-rain', // Patchy rain possible
+                1066: 'fa-cloud-snow',    // Patchy snow possible
+                1069: 'fa-cloud-sun-rain', // Patchy sleet possible
+                1072: 'fa-cloud-sun-rain', // Patchy freezing drizzle possible
+                1087: 'fa-bolt',          // Thundery outbreaks possible
+                1114: 'fa-snowflake',     // Blowing snow
+                1117: 'fa-snowflake',     // Blizzard
+                1135: 'fa-smog',          // Fog
+                1147: 'fa-smog',          // Freezing fog
+                1150: 'fa-cloud-rain',    // Patchy light drizzle
+                1153: 'fa-cloud-rain',    // Light drizzle
+                1168: 'fa-cloud-rain',    // Freezing drizzle
+                1171: 'fa-cloud-rain',    // Heavy freezing drizzle
+                1180: 'fa-cloud-sun-rain', // Patchy light rain
+                1183: 'fa-cloud-sun-rain', // Light rain
+                1186: 'fa-cloud-rain',    // Moderate rain at times
+                1189: 'fa-cloud-rain',    // Moderate rain
+                1192: 'fa-cloud-showers-heavy', // Heavy rain at times
+                1195: 'fa-cloud-showers-heavy', // Heavy rain
+                1198: 'fa-cloud-rain',    // Light freezing rain
+                1201: 'fa-cloud-rain',    // Moderate or heavy freezing rain
+                1240: 'fa-cloud-sun-rain', // Light rain shower
+                1243: 'fa-cloud-rain',    // Moderate or heavy rain shower
+                1246: 'fa-cloud-showers-heavy', // Torrential rain shower
+                1249: 'fa-cloud-sun-rain', // Light sleet showers
+                1252: 'fa-cloud-rain',    // Moderate or heavy sleet showers
+                1255: 'fa-cloud-snow',    // Light snow showers
+                1258: 'fa-cloud-snow',    // Moderate or heavy snow showers
+                1261: 'fa-cloud-snow',    // Light showers of ice pellets
+                1264: 'fa-cloud-snow',    // Moderate or heavy showers of ice pellets
+                1273: 'fa-bolt',          // Patchy light rain with thunder
+                1276: 'fa-bolt',          // Moderate or heavy rain with thunder
+                1279: 'fa-cloud-snow',    // Patchy light snow with thunder
+                1282: 'fa-cloud-snow'     // Moderate or heavy snow with thunder
+            };
+            
+            if (weatherIcon && data.current) {
+                const iconClass = iconMap[data.current.condition.code] || 'fa-sun';
+                weatherIcon.className = `weather-icon fas ${iconClass}`;
+            }
+            
+        } catch (error) {
+            console.log('Weather API error, using fallback data:', error);
+            
+            // Fallback data for Jacksonville if API fails
+            const fallbackData = {
+                temp: 75,
+                desc: 'partly cloudy',
+                wind: 8,
+                humidity: 65,
+                city: 'Jacksonville',
+                icon: 'fa-cloud-sun'
+            };
+            
+            if (weatherTemp) weatherTemp.textContent = `${fallbackData.temp}°F`;
+            if (weatherDesc) weatherDesc.textContent = fallbackData.desc;
+            if (weatherWind) weatherWind.textContent = `${fallbackData.wind} mph`;
+            if (weatherHumidity) weatherHumidity.textContent = `${fallbackData.humidity}%`;
+            if (weatherCity) weatherCity.textContent = fallbackData.city;
+            if (weatherIcon) {
+                weatherIcon.className = `weather-icon fas ${fallbackData.icon}`;
+            }
+        }
+    }
+
     // Initialize
     updateLastSeen();
     createExtraSnow();
+    updateWeather();
     setInterval(updateLastSeen, 60000);
+    setInterval(updateWeather, 600000); // Update weather every 10 minutes
 
 });
