@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>c</title>
+    <title>@zen</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22></text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✠</text></svg>">
 </head>
 <body>
     <div class="snow-container">
@@ -25,7 +25,7 @@
         <div class="card">
             <div class="profile">
                 <div class="profile-img-container">
-                    <img id="che" src="che12.png" alt="" class="profile-img">
+                    <img id="che" src="../IMG_3037.jpg" alt="" class="profile-img">
                     <div class="frost-overlay"></div>
                 </div>
                 <h1 class="username">
@@ -38,13 +38,19 @@
             </div>
 
             <div class="social-links">
-                <a href="#" class="social-link github-link" data-tooltip="GitHub">
-                    <i class="fab fa-github"></i>
-                    <span>GitHub</span>
+                <a href="https://discord.com/users/945118422331686962" class="social-link discord-link" data-tooltip="Discord">
+                    <i class="fab fa-discord"></i>
+                    <span>Discord</span>
                     <div class="frost-effect"></div>
                 </a>
 
-                <a href="#" class="social-link email-link" data-tooltip="Email">
+                <a href="https://discord.gg/your-server-code" class="social-link server-link" data-tooltip="Join Server">
+                    <i class="fas fa-users"></i>
+                    <span>Join Server</span>
+                    <div class="frost-effect"></div>
+                </a>
+
+                <a href="mailto:zen@zensobased.lol" class="social-link email-link" data-tooltip="Email">
                     <i class="fas fa-envelope"></i>
                     <span>Contact</span>
                     <div class="frost-effect"></div>
@@ -138,6 +144,40 @@
             <div class="volume-control">
                 <i class="fas fa-volume-up"></i>
                 <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70">
+            </div>
+        </div>
+    </div>
+
+    <div class="weather-widget">
+        <div class="weather-card">
+            <div class="weather-header">
+                <i class="fas fa-cloud-sun"></i>
+                <span>Weather</span>
+            </div>
+            <div class="weather-content">
+                <div class="weather-main">
+                    <div class="weather-icon-container">
+                        <i class="weather-icon fas fa-sun"></i>
+                    </div>
+                    <div class="weather-temp-info">
+                        <div class="weather-temp">72°F</div>
+                        <div class="weather-desc">Clear</div>
+                    </div>
+                </div>
+                <div class="weather-details">
+                    <div class="weather-detail">
+                        <i class="fas fa-wind"></i>
+                        <span class="weather-wind">5 mph</span>
+                    </div>
+                    <div class="weather-detail">
+                        <i class="fas fa-tint"></i>
+                        <span class="weather-humidity">45%</span>
+                    </div>
+                </div>
+                <div class="weather-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span class="weather-city">New York</span>
+                </div>
             </div>
         </div>
     </div>
