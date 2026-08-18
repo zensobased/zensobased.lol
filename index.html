@@ -7,10 +7,6 @@
   <title>Hi</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
       width: 100vw;
@@ -18,23 +14,15 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      background: black;
+      color: white;
       font-family: Arial, sans-serif;
-      background: white;
-      color: black;
     }
 
     #hi {
       font-size: 48px;
     }
 
-    #device {
-      position: fixed;
-      bottom: 20px;
-      font-size: 14px;
-      color: #888;
-    }
-
-    /* Mobile */
     @media (max-width: 600px) {
       #hi {
         font-size: 32px;
@@ -44,17 +32,7 @@
 </head>
 
 <body>
-
-  <div id="hi">Hi /oft</div>
-  <div id="device"></div>
-
-  <script>
-    const isMobile = window.matchMedia("(max-width: 600px)").matches;
-
-    document.getElementById("device").textContent =
-      isMobile ? "You are on mobile" : "You are on PC";
-  </script>
-
+  <div id="hi">Hi</div>
 </body>
 </html>
 ```
