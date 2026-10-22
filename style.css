@@ -68,10 +68,37 @@ body {
   position: fixed;
   inset: 0;
   z-index: 50;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
   background: #050505;
+  cursor: pointer;
   transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+.loader:focus-visible {
+  outline: 2px solid rgba(194, 184, 184, 0.45);
+  outline-offset: -10px;
+}
+
+.enter-hint {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: rgba(194, 184, 184, 0.6);
+  animation: hintPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
 }
 
 .loader.is-done {
@@ -187,6 +214,11 @@ body {
   padding: 42px 16px;
   perspective: 1100px;
   perspective-origin: 50% 45%;
+}
+
+.tilt-box {
+  padding: 26px 32px;
+  transform-style: preserve-3d;
 }
 
 .card {
@@ -401,6 +433,10 @@ body.is-ready .reveal {
     padding: 32px 16px;
   }
 
+  .tilt-box {
+    padding: 16px 12px;
+  }
+
   .card {
     grid-template-columns: 1fr;
     justify-items: center;
@@ -469,7 +505,8 @@ body.is-ready .reveal {
   }
 
   .caret,
-  .audio-btn .icon-volume {
+  .audio-btn .icon-volume,
+  .enter-hint {
     animation: none;
   }
 

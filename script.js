@@ -4,10 +4,12 @@
   const song = document.getElementById("song");
   const views = document.getElementById("views");
   const nameEl = document.querySelector(".name");
+  const card = document.querySelector(".card");
+  const tiltBox = document.getElementById("tiltBox");
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let revealed = false;
+  let entered = false;
 
   const formatViews = (n) => new Intl.NumberFormat("en-US").format(n);
 
@@ -47,38 +49,11 @@
       }
       i += 1;
       nameEl.textContent = full.slice(0, i);
-      window.setTimeout(typeNext, i === 1 ? 240 : 135);
+      window.setTimeout(typeNext, i === 1 ? 240 : 150);
     }
 
-    window.setTimeout(typeNext, 280);
+    window.setTimeout(typeNext, 300);
   }
-
-  /* ---------- entrance ---------- */
-
-  function reveal() {
-    if (revealed) return;
-    revealed = true;
-
-    document.body.classList.add("is-ready");
-    loader.classList.add("is-done");
-
-    const target = Number(views.textContent.replace(/[^0-9]/g, "")) || 0;
-    views.textContent = "0";
-    countUp(views, target);
-
-    startTyping();
-
-    window.setTimeout(() => loader.remove(), 700);
-  }
-
-  const startedAt = performance.now();
-  window.addEventListener("load", () => {
-    const wait = Math.max(0, 800 - (performance.now() - startedAt));
-    window.setTimeout(reveal, wait);
-  });
-
-  // safety net in case load never fires cleanly
-  window.setTimeout(reveal, 3500);
 
   /* ---------- audio ---------- */
 
@@ -106,11 +81,45 @@
   song.addEventListener("pause", syncAudio);
   song.addEventListener("ended", syncAudio);
 
-  /* ---------- 3d tilt (only while the pointer is over the card) ---------- */
+  /* ---------- click to enter ---------- */
 
-  const card = document.querySelector(".card");
+  function enter() {
+    if (entered) return;
+    entered = true;
+
+    document.body.classList.add("is-ready");
+    loader.classList.add("is-done");
+    window.setTimeout(() => loader.remove(), 700);
+
+    const target = Number(views.textContent.replace(/[^0-9]/g, "")) || 0;
+    views.textContent = "0";
+    countUp(views, target);
+
+    startTyping();
+
+    // this click is the user gesture, so the song is allowed to start
+    const started = song.play();
+    if (started && typeof started.then === "function") {
+      started.then(syncAudio).catch(syncAudio);
+    } else {
+      syncAudio();
+    }
+  }
+
+  loader.addEventListener("click", enter);
+  loader.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      enter();
+    }
+  });
+
+  /* ---------- 3d tilt (padded box around the card) ---------- */
+
+  const zone = tiltBox || card;
   const canTilt =
     card &&
+    zone &&
     !reducedMotion &&
     window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
@@ -146,10 +155,10 @@
       if (!raf) raf = requestAnimationFrame(frame);
     }
 
-    card.addEventListener(
+    zone.addEventListener(
       "pointermove",
       (e) => {
-        const rect = card.getBoundingClientRect();
+        const rect = zone.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
 
         const px = clamp((e.clientX - rect.left) / rect.width, 0, 1) * 2 - 1;
@@ -175,8 +184,8 @@
       run();
     };
 
-    card.addEventListener("pointerleave", reset);
-    card.addEventListener("pointercancel", reset);
+    zone.addEventListener("pointerleave", reset);
+    zone.addEventListener("pointercancel", reset);
     window.addEventListener("blur", reset);
   }
 })();
