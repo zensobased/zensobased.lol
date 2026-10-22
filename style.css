@@ -202,29 +202,8 @@ body {
   will-change: transform;
 }
 
-/* pointer-following highlight for the 3d tilt */
-.card::before {
-  content: "";
-  position: absolute;
-  inset: -70px;
-  border-radius: 80px;
-  pointer-events: none;
-  background: radial-gradient(
-    220px circle at var(--mx, 50%) var(--my, 50%),
-    rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0.03) 45%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
 .card.is-tilting {
   transition: transform 0.12s linear;
-}
-
-.card.is-tilting::before {
-  opacity: 1;
 }
 
 .avatar-wrap,
@@ -255,7 +234,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50px;
+  border-radius: 50%;
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -286,6 +265,17 @@ body {
   text-overflow: ellipsis;
 }
 
+.name.is-typing::after {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 0.78em;
+  margin-left: 5px;
+  vertical-align: -0.02em;
+  background: currentColor;
+  animation: blink 1s steps(2, start) infinite;
+}
+
 .badges {
   flex: none;
   display: flex;
@@ -303,6 +293,16 @@ body {
   width: 20px;
   height: 20px;
   color: var(--fg);
+  cursor: default;
+  transform-origin: 50% 80%;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s ease,
+    filter 0.25s ease;
+}
+
+.badge:hover {
+  color: #f7f3f3;
+  transform: translateY(-2px) scale(1.16);
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.28));
 }
 
 .badge svg {
@@ -415,7 +415,7 @@ body.is-ready .reveal {
   }
 
   .avatar {
-    border-radius: 40px;
+    border-radius: 50%;
   }
 
   .info {
@@ -482,5 +482,4 @@ body.is-ready .reveal {
 
   .card::before {
     display: none;
-  }
-}
+  }}

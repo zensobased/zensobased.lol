@@ -3,6 +3,9 @@
   const audioBtn = document.getElementById("audioBtn");
   const song = document.getElementById("song");
   const views = document.getElementById("views");
+  const nameEl = document.querySelector(".name");
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   let revealed = false;
 
@@ -21,6 +24,37 @@
     requestAnimationFrame(frame);
   }
 
+  /* ---------- typewriter name ---------- */
+
+  function startTyping() {
+    if (!nameEl || reducedMotion) return;
+
+    const full = nameEl.textContent.trim();
+    if (!full) return;
+
+    // reserve the finished width (plus the caret) so the badges don't jitter
+    const width = nameEl.getBoundingClientRect().width;
+    nameEl.textContent = "";
+    if (width) nameEl.style.minWidth = Math.ceil(width + 9) + "px";
+    nameEl.classList.add("is-typing");
+
+    let i = 0;
+
+    function typeNext() {
+      if (i >= full.length) {
+        window.setTimeout(() => nameEl.classList.remove("is-typing"), 1500);
+        return;
+      }
+      i += 1;
+      nameEl.textContent = full.slice(0, i);
+      window.setTimeout(typeNext, i === 1 ? 240 : 135);
+    }
+
+    window.setTimeout(typeNext, 280);
+  }
+
+  /* ---------- entrance ---------- */
+
   function reveal() {
     if (revealed) return;
     revealed = true;
@@ -31,6 +65,8 @@
     const target = Number(views.textContent.replace(/[^0-9]/g, "")) || 0;
     views.textContent = "0";
     countUp(views, target);
+
+    startTyping();
 
     window.setTimeout(() => loader.remove(), 700);
   }
@@ -43,6 +79,8 @@
 
   // safety net in case load never fires cleanly
   window.setTimeout(reveal, 3500);
+
+  /* ---------- audio ---------- */
 
   function syncAudio() {
     const playing = !song.paused;
@@ -68,13 +106,13 @@
   song.addEventListener("pause", syncAudio);
   song.addEventListener("ended", syncAudio);
 
-  /* ---------- 3d tilt ---------- */
+  /* ---------- 3d tilt (only while the pointer is over the card) ---------- */
 
   const card = document.querySelector(".card");
   const canTilt =
     card &&
-    window.matchMedia("(hover: hover) and (pointer: fine)").matches &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    !reducedMotion &&
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
   if (canTilt) {
     const MAX = 14;
@@ -108,22 +146,17 @@
       if (!raf) raf = requestAnimationFrame(frame);
     }
 
-    window.addEventListener(
+    card.addEventListener(
       "pointermove",
       (e) => {
         const rect = card.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
 
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const nx = clamp((e.clientX - cx) / (window.innerWidth * 0.42), -1, 1);
-        const ny = clamp((e.clientY - cy) / (window.innerHeight * 0.42), -1, 1);
+        const px = clamp((e.clientX - rect.left) / rect.width, 0, 1) * 2 - 1;
+        const py = clamp((e.clientY - rect.top) / rect.height, 0, 1) * 2 - 1;
 
-        tgtY = nx * MAX;
-        tgtX = -ny * MAX * 0.75;
-
-        card.style.setProperty("--mx", clamp(((e.clientX - rect.left) / rect.width) * 100, -60, 160).toFixed(1) + "%");
-        card.style.setProperty("--my", clamp(((e.clientY - rect.top) / rect.height) * 100, -60, 160).toFixed(1) + "%");
+        tgtY = px * MAX;
+        tgtX = -py * MAX * 0.75;
 
         if (!active) {
           active = true;
@@ -142,7 +175,8 @@
       run();
     };
 
-    document.addEventListener("pointerleave", reset);
+    card.addEventListener("pointerleave", reset);
+    card.addEventListener("pointercancel", reset);
     window.addEventListener("blur", reset);
   }
 })();
