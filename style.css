@@ -185,14 +185,64 @@ body {
   justify-content: center;
   min-height: 100dvh;
   padding: 42px 16px;
+  perspective: 1100px;
+  perspective-origin: 50% 45%;
 }
 
 .card {
+  position: relative;
   display: grid;
   grid-template-columns: 172px 170px;
   align-items: center;
   gap: 30px;
   padding: 10px 18px;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* pointer-following highlight for the 3d tilt */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -70px;
+  border-radius: 80px;
+  pointer-events: none;
+  background: radial-gradient(
+    220px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0.03) 45%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.card.is-tilting {
+  transition: transform 0.12s linear;
+}
+
+.card.is-tilting::before {
+  opacity: 1;
+}
+
+.avatar-wrap,
+.info {
+  transform-style: preserve-3d;
+}
+
+.avatar,
+.info {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card.is-tilting .avatar {
+  transform: translateZ(58px);
+}
+
+.card.is-tilting .info {
+  transform: translateZ(34px);
 }
 
 .avatar-wrap {
@@ -421,5 +471,16 @@ body.is-ready .reveal {
   .caret,
   .audio-btn .icon-volume {
     animation: none;
+  }
+
+  .card,
+  .avatar,
+  .info {
+    transform: none !important;
+    transition: none;
+  }
+
+  .card::before {
+    display: none;
   }
 }

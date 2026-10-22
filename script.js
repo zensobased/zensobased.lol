@@ -67,4 +67,82 @@
   song.addEventListener("play", syncAudio);
   song.addEventListener("pause", syncAudio);
   song.addEventListener("ended", syncAudio);
+
+  /* ---------- 3d tilt ---------- */
+
+  const card = document.querySelector(".card");
+  const canTilt =
+    card &&
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (canTilt) {
+    const MAX = 14;
+    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+    let curX = 0;
+    let curY = 0;
+    let tgtX = 0;
+    let tgtY = 0;
+    let active = false;
+    let raf = 0;
+
+    function frame() {
+      curX += (tgtX - curX) * 0.12;
+      curY += (tgtY - curY) * 0.12;
+      const settled = Math.abs(tgtX - curX) < 0.02 && Math.abs(tgtY - curY) < 0.02;
+
+      card.style.setProperty("--rx", curX.toFixed(2) + "deg");
+      card.style.setProperty("--ry", curY.toFixed(2) + "deg");
+
+      if (!settled) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+
+      raf = 0;
+      if (!active) card.classList.remove("is-tilting");
+    }
+
+    function run() {
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+
+    window.addEventListener(
+      "pointermove",
+      (e) => {
+        const rect = card.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const nx = clamp((e.clientX - cx) / (window.innerWidth * 0.42), -1, 1);
+        const ny = clamp((e.clientY - cy) / (window.innerHeight * 0.42), -1, 1);
+
+        tgtY = nx * MAX;
+        tgtX = -ny * MAX * 0.75;
+
+        card.style.setProperty("--mx", clamp(((e.clientX - rect.left) / rect.width) * 100, -60, 160).toFixed(1) + "%");
+        card.style.setProperty("--my", clamp(((e.clientY - rect.top) / rect.height) * 100, -60, 160).toFixed(1) + "%");
+
+        if (!active) {
+          active = true;
+          card.classList.add("is-tilting");
+        }
+
+        run();
+      },
+      { passive: true }
+    );
+
+    const reset = () => {
+      tgtX = 0;
+      tgtY = 0;
+      active = false;
+      run();
+    };
+
+    document.addEventListener("pointerleave", reset);
+    window.addEventListener("blur", reset);
+  }
 })();
