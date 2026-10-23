@@ -355,6 +355,16 @@ body {
   display: block;
 }
 
+.handle {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.015em;
+  color: rgba(194, 184, 184, 0.62);
+  margin-top: -2px;
+  overflow-wrap: anywhere;
+}
+
 .bio {
   font-size: 17px;
   font-weight: 570;
@@ -544,6 +554,10 @@ body.is-ready .reveal {
 
   .name {
     font-size: 32px;
+  }
+
+  .handle {
+    font-size: 12px;
   }
 
   .bio {
