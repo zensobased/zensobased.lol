@@ -1,7 +1,19 @@
+/* Previous pixel font is kept at assets/fonts/userfont-pixel-backup.ttf.
+   To bring it back, delete the @font-face below and use this instead:
+
 @font-face {
   font-family: "UserFont";
-  src: url("assets/userfont.ttf") format("truetype");
+  src: url("assets/fonts/userfont-pixel-backup.ttf") format("truetype");
   font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("assets/fonts/space-grotesk.woff2") format("woff2");
+  font-weight: 300 700;
   font-style: normal;
   font-display: swap;
 }
@@ -9,7 +21,7 @@
 :root {
   --fg: #c2b8b8;
   --bg: #080808;
-  --font: "UserFont", "Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "Space Grotesk", "Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 *,
@@ -351,6 +363,73 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* ---------- discord presence ---------- */
+
+.discord {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 25px;
+  border: 2px solid rgba(6, 7, 6, 0.04);
+  background: rgba(6, 7, 6, 0.2);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1;
+  cursor: default;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.discord:hover {
+  background: rgba(20, 20, 20, 0.32);
+  border-color: rgba(120, 120, 120, 0.2);
+}
+
+.icon-discord {
+  width: 13px;
+  height: 13px;
+  display: block;
+  flex: none;
+  opacity: 0.85;
+}
+
+.discord-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: #747f8d;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.discord-label {
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.discord[data-status="online"] .discord-dot {
+  background: #3ba55d;
+  box-shadow: 0 0 7px rgba(59, 165, 93, 0.75);
+}
+
+.discord[data-status="idle"] .discord-dot {
+  background: #f0b232;
+  box-shadow: 0 0 7px rgba(240, 178, 50, 0.7);
+}
+
+.discord[data-status="dnd"] .discord-dot {
+  background: #f23f43;
+  box-shadow: 0 0 7px rgba(242, 63, 67, 0.7);
+}
+
+.discord[data-status="offline"] .discord-dot {
+  background: #747f8d;
+  box-shadow: none;
+}
+
 /* ---------- footer stats ---------- */
 
 .meta {
@@ -469,6 +548,10 @@ body.is-ready .reveal {
 
   .bio {
     font-size: 15px;
+  }
+
+  .discord {
+    align-self: center;
   }
 
   .meta {

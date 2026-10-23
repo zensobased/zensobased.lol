@@ -114,6 +114,82 @@
     }
   });
 
+  /* ---------- discord status + avatar ---------- */
+
+  const DISCORD_ID = "945118422331686962";
+  const presenceUrl = `https://api.lanyard.rest/v1/users/${DISCORD_ID}`;
+  const discordPill = document.getElementById("discord");
+  const discordLabel = document.getElementById("discordLabel");
+  const avatarImg = document.getElementById("avatar");
+  const favicon = document.getElementById("favicon");
+
+  const STATUS_LABEL = { online: "online", idle: "idle", dnd: "dnd", offline: "offline" };
+
+  function discordAvatar(user, size) {
+    if (!user) return "";
+
+    if (!user.avatar) {
+      // default Discord avatar: discriminator % 5 for legacy accounts, id-based otherwise
+      const index =
+        user.discriminator && user.discriminator !== "0"
+          ? Number(user.discriminator) % 5
+          : Number((BigInt(user.id) >> 22n) % 6n);
+      return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+    }
+
+    const ext = user.avatar.startsWith("a_") ? "gif" : "webp";
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${ext}?size=${size}`;
+  }
+
+  let liveAvatar = "";
+
+  function applyAvatar(user) {
+    const url = discordAvatar(user, 512);
+    if (!url || url === liveAvatar || !avatarImg) return;
+
+    // only swap once the Discord image has actually downloaded
+    const probe = new Image();
+    probe.onload = () => {
+      liveAvatar = url;
+      avatarImg.src = url;
+      if (favicon) favicon.href = url;
+    };
+    probe.src = url;
+  }
+
+  function applyStatus(status, user) {
+    const key = STATUS_LABEL[status] ? status : "offline";
+    if (discordPill) {
+      discordPill.dataset.status = key;
+      const who = user && (user.global_name || user.username);
+      discordPill.title = who ? `Discord: ${who} — ${key}` : "Discord status";
+    }
+    if (discordLabel) discordLabel.textContent = STATUS_LABEL[key];
+  }
+
+  async function refreshPresence() {
+    try {
+      const res = await fetch(presenceUrl, { cache: "no-store" });
+      if (!res.ok) throw new Error(`lanyard ${res.status}`);
+      const payload = await res.json();
+      if (!payload.success || !payload.data) throw new Error("no presence data");
+
+      applyStatus(payload.data.discord_status, payload.data.discord_user);
+      applyAvatar(payload.data.discord_user);
+    } catch (err) {
+      // keep the local pfp; just report offline once we have no answer at all
+      if (!discordPill || discordPill.dataset.status === "loading") {
+        applyStatus("offline", null);
+      }
+    }
+  }
+
+  refreshPresence();
+  window.setInterval(refreshPresence, 30000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshPresence();
+  });
+
   /* ---------- 3d tilt (padded box around the card) ---------- */
 
   const zone = tiltBox || card;
