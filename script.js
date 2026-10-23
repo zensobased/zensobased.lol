@@ -196,6 +196,7 @@
 
   const ADMIN_KEY = "master zen";
   const VIEWS_STORE = "zen.views";
+  const VIEWS_COOKIE = "zen_views";
 
   const adminEl = document.getElementById("admin");
   const adminForm = document.getElementById("adminForm");
@@ -207,22 +208,45 @@
 
   let adminUnlocked = false;
 
+  function readCookie(name) {
+    const pair = document.cookie
+      .split("; ")
+      .find((entry) => entry.indexOf(name + "=") === 0);
+    return pair ? decodeURIComponent(pair.slice(name.length + 1)) : null;
+  }
+
+  function parseViews(raw) {
+    if (raw === null) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+  }
+
   function readSavedViews() {
+    let raw = null;
+
+    // localStorage first, then a cookie for browsers that block or clear it
     try {
-      const raw = window.localStorage.getItem(VIEWS_STORE);
-      if (raw === null) return null;
-      const n = Number(raw);
-      return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+      raw = window.localStorage.getItem(VIEWS_STORE);
     } catch (err) {
-      return null;
+      raw = null;
     }
+
+    if (raw === null) raw = readCookie(VIEWS_COOKIE);
+
+    return parseViews(raw);
   }
 
   function writeSavedViews(n) {
     try {
       window.localStorage.setItem(VIEWS_STORE, String(n));
     } catch (err) {
-      /* storage blocked, the number just won't survive a reload */
+      /* storage blocked, the cookie below still carries it */
+    }
+
+    try {
+      document.cookie = `${VIEWS_COOKIE}=${n}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch (err) {
+      /* cookies blocked too */
     }
   }
 
@@ -306,6 +330,42 @@
 
     if (e.key === "Escape" && adminEl && !adminEl.hidden) closeAdmin();
   });
+
+  // no Alt key on a phone: hold the view count for a moment instead
+  const viewsStat = document.querySelector(".views");
+  let pressTimer = 0;
+  let pressOrigin = null;
+
+  function cancelLongPress() {
+    window.clearTimeout(pressTimer);
+    pressTimer = 0;
+    pressOrigin = null;
+  }
+
+  if (viewsStat) {
+    viewsStat.addEventListener("pointerdown", (e) => {
+      pressOrigin = { x: e.clientX, y: e.clientY };
+      window.clearTimeout(pressTimer);
+      pressTimer = window.setTimeout(() => {
+        pressOrigin = null;
+        pressTimer = 0;
+        openAdmin();
+      }, 650);
+    });
+
+    viewsStat.addEventListener("pointermove", (e) => {
+      if (!pressOrigin) return;
+      if (Math.hypot(e.clientX - pressOrigin.x, e.clientY - pressOrigin.y) > 10) {
+        cancelLongPress();
+      }
+    });
+
+    ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => {
+      viewsStat.addEventListener(ev, cancelLongPress);
+    });
+
+    viewsStat.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
 
   /* ---------- 3d tilt (padded box around the card) ---------- */
 
