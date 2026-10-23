@@ -10,6 +10,7 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   let entered = false;
+  let viewsLocked = false;
 
   const formatViews = (n) => new Intl.NumberFormat("en-US").format(n);
 
@@ -17,6 +18,7 @@
     const start = performance.now();
     const from = 0;
     function frame(now) {
+      if (viewsLocked) return;
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
       el.textContent = formatViews(Math.round(from + (target - from) * eased));
@@ -188,6 +190,121 @@
   window.setInterval(refreshPresence, 30000);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") refreshPresence();
+  });
+
+  /* ---------- hidden admin (alt + y) ---------- */
+
+  const ADMIN_KEY = "master zen";
+  const VIEWS_STORE = "zen.views";
+
+  const adminEl = document.getElementById("admin");
+  const adminForm = document.getElementById("adminForm");
+  const adminKeyField = document.getElementById("adminKeyField");
+  const adminKeyInput = document.getElementById("adminKey");
+  const adminViewsField = document.getElementById("adminViewsField");
+  const adminViewsInput = document.getElementById("adminViews");
+  const adminHint = document.getElementById("adminHint");
+
+  let adminUnlocked = false;
+
+  function readSavedViews() {
+    try {
+      const raw = window.localStorage.getItem(VIEWS_STORE);
+      if (raw === null) return null;
+      const n = Number(raw);
+      return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function writeSavedViews(n) {
+    try {
+      window.localStorage.setItem(VIEWS_STORE, String(n));
+    } catch (err) {
+      /* storage blocked, the number just won't survive a reload */
+    }
+  }
+
+  const savedViews = readSavedViews();
+  if (savedViews !== null && views) views.textContent = formatViews(savedViews);
+
+  const currentViews = () => Number((views.textContent || "0").replace(/[^0-9]/g, "")) || 0;
+
+  function setHint(text, isError) {
+    if (!adminHint) return;
+    adminHint.textContent = text;
+    adminHint.classList.toggle("is-error", Boolean(isError));
+  }
+
+  function openAdmin() {
+    if (!adminEl || !adminKeyInput) return;
+    adminEl.hidden = false;
+
+    if (adminUnlocked) {
+      adminViewsInput.value = String(currentViews());
+      adminViewsInput.focus();
+      adminViewsInput.select();
+      setHint("enter to save · esc to close", false);
+    } else {
+      adminKeyInput.value = "";
+      adminKeyInput.focus();
+      setHint("alt + y to close", false);
+    }
+  }
+
+  function closeAdmin() {
+    if (!adminEl) return;
+    adminEl.hidden = true;
+    if (adminKeyInput) adminKeyInput.value = "";
+  }
+
+  if (adminForm) {
+    adminForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      if (!adminUnlocked) {
+        if (adminKeyInput.value.trim().toLowerCase() === ADMIN_KEY) {
+          adminUnlocked = true;
+          adminKeyField.hidden = true;
+          adminViewsField.hidden = false;
+          adminViewsInput.value = String(currentViews());
+          adminViewsInput.focus();
+          adminViewsInput.select();
+          setHint("enter to save · esc to close", false);
+        } else {
+          adminKeyInput.value = "";
+          adminKeyInput.focus();
+          setHint("wrong key", true);
+        }
+        return;
+      }
+
+      const next = Math.max(0, Math.floor(Number(adminViewsInput.value)));
+      if (!Number.isFinite(next)) return;
+
+      viewsLocked = true;
+      views.textContent = formatViews(next);
+      writeSavedViews(next);
+      setHint("saved · esc to close", false);
+    });
+  }
+
+  if (adminEl) {
+    adminEl.addEventListener("click", (e) => {
+      if (e.target === adminEl) closeAdmin();
+    });
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "y" || e.key === "Y" || e.code === "KeyY")) {
+      e.preventDefault();
+      if (adminEl && !adminEl.hidden) closeAdmin();
+      else openAdmin();
+      return;
+    }
+
+    if (e.key === "Escape" && adminEl && !adminEl.hidden) closeAdmin();
   });
 
   /* ---------- 3d tilt (padded box around the card) ---------- */
