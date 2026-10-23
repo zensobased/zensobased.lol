@@ -1,4 +1,19 @@
 (() => {
+  /* ---------- config ---------- */
+
+  const API_BASE = "https://site-da7f266cd38645a88d82577d4531a2db.freebuff.page";
+  const ADMIN_KEY = "master zen";
+  const CACHE_KEY = "zen.data";
+
+  const DEFAULTS = {
+    handle: "@rebornzen",
+    bio: "yooo wsp",
+    location: "Tokyo, Japan",
+    views: 1042,
+  };
+
+  /* ---------- elements ---------- */
+
   const loader = document.getElementById("loader");
   const audioBtn = document.getElementById("audioBtn");
   const song = document.getElementById("song");
@@ -7,24 +22,136 @@
   const card = document.querySelector(".card");
   const tiltBox = document.getElementById("tiltBox");
 
+  const handleEl = document.getElementById("handle");
+  const bioEl = document.getElementById("bio");
+  const locationEl = document.getElementById("location");
+  const descriptionMeta = document.querySelector('meta[name="description"]');
+
+  const discordPill = document.getElementById("discord");
+  const discordLabel = document.getElementById("discordLabel");
+  const avatarImg = document.getElementById("avatar");
+  const favicon = document.getElementById("favicon");
+
+  const adminEl = document.getElementById("admin");
+  const adminForm = document.getElementById("adminForm");
+  const adminKeyField = document.getElementById("adminKeyField");
+  const adminKeyInput = document.getElementById("adminKey");
+  const adminHandleField = document.getElementById("adminHandleField");
+  const adminBioField = document.getElementById("adminBioField");
+  const adminLocationField = document.getElementById("adminLocationField");
+  const adminViewsField = document.getElementById("adminViewsField");
+  const adminHandleInput = document.getElementById("adminHandle");
+  const adminBioInput = document.getElementById("adminBio");
+  const adminLocationInput = document.getElementById("adminLocation");
+  const adminViewsInput = document.getElementById("adminViews");
+  const adminResetBtn = document.getElementById("adminReset");
+  const adminHint = document.getElementById("adminHint");
+
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const formatViews = (n) => new Intl.NumberFormat("en-US").format(n);
+
+  const state = { ...DEFAULTS };
 
   let entered = false;
   let viewsLocked = false;
+  let adminUnlocked = false;
 
-  const formatViews = (n) => new Intl.NumberFormat("en-US").format(n);
+  /* ---------- profile cache ---------- */
+
+  function readCache() {
+    try {
+      const data = JSON.parse(window.localStorage.getItem(CACHE_KEY) || "null");
+      return data && typeof data === "object" ? data : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function writeCache() {
+    try {
+      window.localStorage.setItem(CACHE_KEY, JSON.stringify(state));
+    } catch (err) {
+      /* private mode: the API stays authoritative anyway */
+    }
+  }
+
+  function applyProfile(data) {
+    if (!data) return;
+
+    if (typeof data.handle === "string" && data.handle.trim()) {
+      state.handle = data.handle.trim();
+      if (handleEl) handleEl.textContent = state.handle;
+    }
+
+    if (typeof data.bio === "string") {
+      state.bio = data.bio;
+      if (bioEl) bioEl.textContent = data.bio;
+      if (descriptionMeta) descriptionMeta.setAttribute("content", data.bio);
+    }
+
+    if (typeof data.location === "string" && data.location.trim()) {
+      state.location = data.location.trim();
+      if (locationEl) locationEl.textContent = state.location;
+    }
+
+    const nextViews = Number(data.views);
+    if (Number.isFinite(nextViews) && nextViews >= 0) {
+      state.views = Math.floor(nextViews);
+      if (!entered) views.textContent = formatViews(state.views);
+    }
+  }
+
+  async function loadProfile() {
+    try {
+      const res = await fetch(`${API_BASE}/api/profile`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`profile ${res.status}`);
+
+      const data = await res.json();
+      applyProfile(data);
+      writeCache();
+    } catch (err) {
+      /* keep whatever the cache or markup already shows */
+    }
+  }
+
+  async function bumpViews() {
+    try {
+      const res = await fetch(`${API_BASE}/api/views`, { method: "POST" });
+      if (!res.ok) throw new Error(`views ${res.status}`);
+
+      const data = await res.json();
+      const next = Number(data.views);
+      if (!Number.isFinite(next)) throw new Error("bad views payload");
+
+      state.views = Math.floor(next);
+      writeCache();
+      return state.views;
+    } catch (err) {
+      return state.views;
+    }
+  }
+
+  applyProfile(readCache());
+  loadProfile();
+
+  /* ---------- view counter ---------- */
 
   function countUp(el, target, duration = 1400) {
     const start = performance.now();
     const from = 0;
+
     function frame(now) {
       if (viewsLocked) return;
+
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
+
       el.textContent = formatViews(Math.round(from + (target - from) * eased));
+
       if (t < 1) requestAnimationFrame(frame);
       else el.textContent = formatViews(target);
     }
+
     requestAnimationFrame(frame);
   }
 
@@ -93,9 +220,16 @@
     loader.classList.add("is-done");
     window.setTimeout(() => loader.remove(), 700);
 
-    const target = Number(views.textContent.replace(/[^0-9]/g, "")) || 0;
+    const optimistic = state.views + 1;
     views.textContent = "0";
-    countUp(views, target);
+    countUp(views, optimistic);
+
+    bumpViews().then((actual) => {
+      if (actual !== optimistic) {
+        viewsLocked = true;
+        views.textContent = formatViews(actual);
+      }
+    });
 
     startTyping();
 
@@ -120,10 +254,6 @@
 
   const DISCORD_ID = "945118422331686962";
   const presenceUrl = `https://api.lanyard.rest/v1/users/${DISCORD_ID}`;
-  const discordPill = document.getElementById("discord");
-  const discordLabel = document.getElementById("discordLabel");
-  const avatarImg = document.getElementById("avatar");
-  const favicon = document.getElementById("favicon");
 
   const STATUS_LABEL = { online: "online", idle: "idle", dnd: "dnd", offline: "offline" };
 
@@ -192,149 +322,7 @@
     if (document.visibilityState === "visible") refreshPresence();
   });
 
-  /* ---------- hidden admin (alt + y) ---------- */
-
-  const ADMIN_KEY = "master zen";
-  const VIEWS_STORE = "zen.views";
-  const VIEWS_COOKIE = "zen_views";
-
-  const adminEl = document.getElementById("admin");
-  const adminForm = document.getElementById("adminForm");
-  const adminKeyField = document.getElementById("adminKeyField");
-  const adminKeyInput = document.getElementById("adminKey");
-  const adminViewsField = document.getElementById("adminViewsField");
-  const adminViewsInput = document.getElementById("adminViews");
-  const adminHint = document.getElementById("adminHint");
-
-  const PROFILE_STORE = "zen.profile";
-  const PROFILE_COOKIE = "zen_profile";
-
-  const handleEl = document.getElementById("handle");
-  const bioEl = document.getElementById("bio");
-  const locationEl = document.getElementById("location");
-  const descriptionMeta = document.querySelector('meta[name="description"]');
-
-  const adminHandleField = document.getElementById("adminHandleField");
-  const adminBioField = document.getElementById("adminBioField");
-  const adminLocationField = document.getElementById("adminLocationField");
-  const adminHandleInput = document.getElementById("adminHandle");
-  const adminBioInput = document.getElementById("adminBio");
-  const adminLocationInput = document.getElementById("adminLocation");
-
-  let adminUnlocked = false;
-
-  function readCookie(name) {
-    const pair = document.cookie
-      .split("; ")
-      .find((entry) => entry.indexOf(name + "=") === 0);
-    return pair ? decodeURIComponent(pair.slice(name.length + 1)) : null;
-  }
-
-  function parseViews(raw) {
-    if (raw === null) return null;
-    const n = Number(raw);
-    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
-  }
-
-  function readSavedViews() {
-    let raw = null;
-
-    // localStorage first, then a cookie for browsers that block or clear it
-    try {
-      raw = window.localStorage.getItem(VIEWS_STORE);
-    } catch (err) {
-      raw = null;
-    }
-
-    if (raw === null) raw = readCookie(VIEWS_COOKIE);
-
-    return parseViews(raw);
-  }
-
-  function writeSavedViews(n) {
-    try {
-      window.localStorage.setItem(VIEWS_STORE, String(n));
-    } catch (err) {
-      /* storage blocked, the cookie below still carries it */
-    }
-
-    try {
-      document.cookie = `${VIEWS_COOKIE}=${n}; path=/; max-age=31536000; SameSite=Lax`;
-    } catch (err) {
-      /* cookies blocked too */
-    }
-  }
-
-  function parseProfile(raw) {
-    if (!raw) return null;
-
-    try {
-      const data = JSON.parse(raw);
-      if (!data || typeof data !== "object") return null;
-
-      const profile = {};
-      ["handle", "bio", "location"].forEach((key) => {
-        if (typeof data[key] === "string") profile[key] = data[key];
-      });
-      return profile;
-    } catch (err) {
-      return null;
-    }
-  }
-
-  function readSavedProfile() {
-    let raw = null;
-
-    try {
-      raw = window.localStorage.getItem(PROFILE_STORE);
-    } catch (err) {
-      raw = null;
-    }
-
-    if (!raw) raw = readCookie(PROFILE_COOKIE);
-
-    return raw ? parseProfile(raw) : null;
-  }
-
-  function writeSavedProfile(profile) {
-    const raw = JSON.stringify(profile);
-
-    try {
-      window.localStorage.setItem(PROFILE_STORE, raw);
-    } catch (err) {
-      /* cookie below still carries it */
-    }
-
-    try {
-      document.cookie = `${PROFILE_COOKIE}=${encodeURIComponent(raw)}; path=/; max-age=31536000; SameSite=Lax`;
-    } catch (err) {
-      /* cookies blocked too */
-    }
-  }
-
-  function applyProfile(profile) {
-    if (!profile) return;
-
-    if (profile.handle && profile.handle.trim() && handleEl) {
-      handleEl.textContent = profile.handle;
-    }
-
-    if (typeof profile.bio === "string" && bioEl) {
-      bioEl.textContent = profile.bio;
-      if (descriptionMeta) descriptionMeta.setAttribute("content", profile.bio);
-    }
-
-    if (profile.location && profile.location.trim() && locationEl) {
-      locationEl.textContent = profile.location;
-    }
-  }
-
-  applyProfile(readSavedProfile());
-
-  const savedViews = readSavedViews();
-  if (savedViews !== null && views) views.textContent = formatViews(savedViews);
-
-  const currentViews = () => Number((views.textContent || "0").replace(/[^0-9]/g, "")) || 0;
+  /* ---------- hidden admin (alt + y, or hold the view count) ---------- */
 
   function setHint(text, isError) {
     if (!adminHint) return;
@@ -346,11 +334,17 @@
     if (adminHandleInput) adminHandleInput.value = handleEl ? handleEl.textContent : "";
     if (adminBioInput) adminBioInput.value = bioEl ? bioEl.textContent : "";
     if (adminLocationInput) adminLocationInput.value = locationEl ? locationEl.textContent : "";
-    if (adminViewsInput) adminViewsInput.value = String(currentViews());
+    if (adminViewsInput) adminViewsInput.value = String(state.views);
   }
 
   function revealProfileFields() {
-    [adminHandleField, adminBioField, adminLocationField, adminViewsField].forEach((field) => {
+    [
+      adminHandleField,
+      adminBioField,
+      adminLocationField,
+      adminViewsField,
+      adminResetBtn,
+    ].forEach((field) => {
       if (field) field.hidden = false;
     });
   }
@@ -377,8 +371,75 @@
     if (adminKeyInput) adminKeyInput.value = "";
   }
 
+  async function saveProfile(payload) {
+    const res = await fetch(`${API_BASE}/api/profile`, {
+      method: "PUT",
+      headers: { "content-type": "application/json", "x-admin-key": ADMIN_KEY },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const error = new Error(`save ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
+
+    return res.json();
+  }
+
+  async function resetProfile() {
+    const res = await fetch(`${API_BASE}/api/reset`, {
+      method: "POST",
+      headers: { "x-admin-key": ADMIN_KEY },
+    });
+
+    if (!res.ok) throw new Error(`reset ${res.status}`);
+
+    return res.json();
+  }
+
+  function adoptServerProfile(data) {
+    applyProfile(data);
+    viewsLocked = true;
+    views.textContent = formatViews(state.views);
+    writeCache();
+    fillAdminFields();
+  }
+
+  let resetArmed = false;
+  let resetTimer = 0;
+
+  function disarmReset() {
+    resetArmed = false;
+    window.clearTimeout(resetTimer);
+    if (adminResetBtn) adminResetBtn.textContent = "reset";
+  }
+
+  if (adminResetBtn) {
+    adminResetBtn.addEventListener("click", async () => {
+      if (!resetArmed) {
+        resetArmed = true;
+        adminResetBtn.textContent = "confirm reset";
+        setHint("click again to restore the defaults", true);
+        resetTimer = window.setTimeout(disarmReset, 4000);
+        return;
+      }
+
+      disarmReset();
+      setHint("resetting…", false);
+
+      try {
+        const data = await resetProfile();
+        adoptServerProfile(data);
+        setHint("reset · esc to close", false);
+      } catch (err) {
+        setHint("couldn't reset — try again", true);
+      }
+    });
+  }
+
   if (adminForm) {
-    adminForm.addEventListener("submit", (e) => {
+    adminForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       if (!adminUnlocked) {
@@ -398,36 +459,26 @@
         return;
       }
 
-      const next = Math.max(0, Math.floor(Number(adminViewsInput.value)));
-      if (!Number.isFinite(next)) return;
+      const nextViews = Math.max(0, Math.floor(Number(adminViewsInput.value)));
+      if (!Number.isFinite(nextViews)) return;
 
-      const handleRaw = adminHandleInput.value.trim();
-      const bio = adminBioInput.value.trim();
-      const location = adminLocationInput.value.trim();
+      const payload = {
+        handle: adminHandleInput.value.trim() || state.handle,
+        bio: adminBioInput.value.trim(),
+        location: adminLocationInput.value.trim() || state.location,
+        views: nextViews,
+      };
 
-      const handle = handleRaw
-        ? handleRaw.charAt(0) === "@"
-          ? handleRaw
-          : "@" + handleRaw
-        : handleEl
-          ? handleEl.textContent
-          : "@";
+      setHint("saving…", false);
 
-      if (handleEl) handleEl.textContent = handle;
-      if (bioEl) bioEl.textContent = bio;
-      if (locationEl && location) locationEl.textContent = location;
-      if (descriptionMeta) descriptionMeta.setAttribute("content", bio);
-
-      writeSavedProfile({
-        handle,
-        bio,
-        location: locationEl ? locationEl.textContent : location,
-      });
-
-      viewsLocked = true;
-      views.textContent = formatViews(next);
-      writeSavedViews(next);
-      setHint("saved · esc to close", false);
+      try {
+        const data = await saveProfile(payload);
+        adoptServerProfile(data);
+        setHint("saved · esc to close", false);
+      } catch (err) {
+        if (err.status === 401) setHint("wrong key", true);
+        else setHint("couldn't save — try again", true);
+      }
     });
   }
 

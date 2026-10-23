@@ -594,6 +594,18 @@ body {
   transform: scale(0.99);
 }
 
+.admin-reset {
+  background: transparent;
+  color: rgba(194, 184, 184, 0.62);
+  border-color: rgba(194, 184, 184, 0.12);
+}
+
+.admin-reset:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(228, 121, 111, 0.4);
+  color: #e4796f;
+}
+
 .admin-hint {
   font-size: 11px;
   color: rgba(194, 184, 184, 0.45);
