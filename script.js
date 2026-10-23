@@ -206,6 +206,21 @@
   const adminViewsInput = document.getElementById("adminViews");
   const adminHint = document.getElementById("adminHint");
 
+  const PROFILE_STORE = "zen.profile";
+  const PROFILE_COOKIE = "zen_profile";
+
+  const handleEl = document.getElementById("handle");
+  const bioEl = document.getElementById("bio");
+  const locationEl = document.getElementById("location");
+  const descriptionMeta = document.querySelector('meta[name="description"]');
+
+  const adminHandleField = document.getElementById("adminHandleField");
+  const adminBioField = document.getElementById("adminBioField");
+  const adminLocationField = document.getElementById("adminLocationField");
+  const adminHandleInput = document.getElementById("adminHandle");
+  const adminBioInput = document.getElementById("adminBio");
+  const adminLocationInput = document.getElementById("adminLocation");
+
   let adminUnlocked = false;
 
   function readCookie(name) {
@@ -250,6 +265,72 @@
     }
   }
 
+  function parseProfile(raw) {
+    if (!raw) return null;
+
+    try {
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== "object") return null;
+
+      const profile = {};
+      ["handle", "bio", "location"].forEach((key) => {
+        if (typeof data[key] === "string") profile[key] = data[key];
+      });
+      return profile;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function readSavedProfile() {
+    let raw = null;
+
+    try {
+      raw = window.localStorage.getItem(PROFILE_STORE);
+    } catch (err) {
+      raw = null;
+    }
+
+    if (!raw) raw = readCookie(PROFILE_COOKIE);
+
+    return raw ? parseProfile(raw) : null;
+  }
+
+  function writeSavedProfile(profile) {
+    const raw = JSON.stringify(profile);
+
+    try {
+      window.localStorage.setItem(PROFILE_STORE, raw);
+    } catch (err) {
+      /* cookie below still carries it */
+    }
+
+    try {
+      document.cookie = `${PROFILE_COOKIE}=${encodeURIComponent(raw)}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch (err) {
+      /* cookies blocked too */
+    }
+  }
+
+  function applyProfile(profile) {
+    if (!profile) return;
+
+    if (profile.handle && profile.handle.trim() && handleEl) {
+      handleEl.textContent = profile.handle;
+    }
+
+    if (typeof profile.bio === "string" && bioEl) {
+      bioEl.textContent = profile.bio;
+      if (descriptionMeta) descriptionMeta.setAttribute("content", profile.bio);
+    }
+
+    if (profile.location && profile.location.trim() && locationEl) {
+      locationEl.textContent = profile.location;
+    }
+  }
+
+  applyProfile(readSavedProfile());
+
   const savedViews = readSavedViews();
   if (savedViews !== null && views) views.textContent = formatViews(savedViews);
 
@@ -261,14 +342,27 @@
     adminHint.classList.toggle("is-error", Boolean(isError));
   }
 
+  function fillAdminFields() {
+    if (adminHandleInput) adminHandleInput.value = handleEl ? handleEl.textContent : "";
+    if (adminBioInput) adminBioInput.value = bioEl ? bioEl.textContent : "";
+    if (adminLocationInput) adminLocationInput.value = locationEl ? locationEl.textContent : "";
+    if (adminViewsInput) adminViewsInput.value = String(currentViews());
+  }
+
+  function revealProfileFields() {
+    [adminHandleField, adminBioField, adminLocationField, adminViewsField].forEach((field) => {
+      if (field) field.hidden = false;
+    });
+  }
+
   function openAdmin() {
     if (!adminEl || !adminKeyInput) return;
     adminEl.hidden = false;
 
     if (adminUnlocked) {
-      adminViewsInput.value = String(currentViews());
-      adminViewsInput.focus();
-      adminViewsInput.select();
+      fillAdminFields();
+      adminHandleInput.focus();
+      adminHandleInput.select();
       setHint("enter to save · esc to close", false);
     } else {
       adminKeyInput.value = "";
@@ -291,10 +385,10 @@
         if (adminKeyInput.value.trim().toLowerCase() === ADMIN_KEY) {
           adminUnlocked = true;
           adminKeyField.hidden = true;
-          adminViewsField.hidden = false;
-          adminViewsInput.value = String(currentViews());
-          adminViewsInput.focus();
-          adminViewsInput.select();
+          revealProfileFields();
+          fillAdminFields();
+          adminHandleInput.focus();
+          adminHandleInput.select();
           setHint("enter to save · esc to close", false);
         } else {
           adminKeyInput.value = "";
@@ -306,6 +400,29 @@
 
       const next = Math.max(0, Math.floor(Number(adminViewsInput.value)));
       if (!Number.isFinite(next)) return;
+
+      const handleRaw = adminHandleInput.value.trim();
+      const bio = adminBioInput.value.trim();
+      const location = adminLocationInput.value.trim();
+
+      const handle = handleRaw
+        ? handleRaw.charAt(0) === "@"
+          ? handleRaw
+          : "@" + handleRaw
+        : handleEl
+          ? handleEl.textContent
+          : "@";
+
+      if (handleEl) handleEl.textContent = handle;
+      if (bioEl) bioEl.textContent = bio;
+      if (locationEl && location) locationEl.textContent = location;
+      if (descriptionMeta) descriptionMeta.setAttribute("content", bio);
+
+      writeSavedProfile({
+        handle,
+        bio,
+        location: locationEl ? locationEl.textContent : location,
+      });
 
       viewsLocked = true;
       views.textContent = formatViews(next);

@@ -9,7 +9,7 @@
   <meta name="description" content="yooo wsp" />
   <link rel="icon" id="favicon" href="assets/pfp.png" />
   <link rel="preload" href="assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <!-- background -->
@@ -64,10 +64,10 @@
             </div>
           </div>
 
-          <p class="bio reveal" data-delay="2">yooo wsp</p>
+          <p class="bio reveal" data-delay="2" id="bio">yooo wsp</p>
 
           <div class="status-row reveal" data-delay="3">
-            <span class="handle">@rebornzen</span>
+            <span class="handle" id="handle">@rebornzen</span>
 
             <div class="discord" id="discord" data-status="loading" title="Discord status">
               <svg class="icon-discord" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -95,7 +95,7 @@
       <svg class="icon-pin" xmlns="http://www.w3.org/2000/svg" viewBox="4 2 16 20" aria-hidden="true">
         <path fill="currentColor" d="M12 12q.825 0 1.413-.587T14 10t-.587-1.412T12 8t-1.412.588T10 10t.588 1.413T12 12m0 10q-4.025-3.425-6.012-6.362T4 10.2q0-3.75 2.413-5.975T12 2t5.588 2.225T20 10.2q0 2.5-1.987 5.438T12 22" />
       </svg>
-      <span>Tokyo, Japan</span>
+      <span id="location">Tokyo, Japan</span>
     </span>
   </footer>
 
@@ -109,6 +109,21 @@
         <input type="password" id="adminKey" placeholder="enter key" />
       </label>
 
+      <label class="admin-field" id="adminHandleField" hidden>
+        <span>handle</span>
+        <input type="text" id="adminHandle" maxlength="32" />
+      </label>
+
+      <label class="admin-field" id="adminBioField" hidden>
+        <span>bio</span>
+        <input type="text" id="adminBio" maxlength="80" />
+      </label>
+
+      <label class="admin-field" id="adminLocationField" hidden>
+        <span>location</span>
+        <input type="text" id="adminLocation" maxlength="40" />
+      </label>
+
       <label class="admin-field" id="adminViewsField" hidden>
         <span>views</span>
         <input type="number" id="adminViews" min="0" step="1" inputmode="numeric" />
@@ -120,6 +135,6 @@
     </form>
   </div>
 
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>

@@ -524,6 +524,8 @@ body {
 
 .admin-panel {
   width: min(320px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
