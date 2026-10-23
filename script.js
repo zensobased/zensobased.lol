@@ -2,7 +2,6 @@
   /* ---------- config ---------- */
 
   const API_BASE = "https://site-da7f266cd38645a88d82577d4531a2db.freebuff.page";
-  const ADMIN_KEY = "master zen";
   const CACHE_KEY = "zen.data";
 
   const DEFAULTS = {
@@ -55,6 +54,7 @@
   let entered = false;
   let viewsLocked = false;
   let adminUnlocked = false;
+  let adminSecret = "";
 
   /* ---------- profile cache ---------- */
 
@@ -371,10 +371,21 @@
     if (adminKeyInput) adminKeyInput.value = "";
   }
 
+  async function verifyKey(key) {
+    const res = await fetch(`${API_BASE}/api/verify`, {
+      method: "POST",
+      headers: { "x-admin-key": key },
+    });
+
+    if (res.status === 401) return false;
+    if (!res.ok) throw new Error(`verify ${res.status}`);
+    return true;
+  }
+
   async function saveProfile(payload) {
     const res = await fetch(`${API_BASE}/api/profile`, {
       method: "PUT",
-      headers: { "content-type": "application/json", "x-admin-key": ADMIN_KEY },
+      headers: { "content-type": "application/json", "x-admin-key": adminSecret },
       body: JSON.stringify(payload),
     });
 
@@ -390,7 +401,7 @@
   async function resetProfile() {
     const res = await fetch(`${API_BASE}/api/reset`, {
       method: "POST",
-      headers: { "x-admin-key": ADMIN_KEY },
+      headers: { "x-admin-key": adminSecret },
     });
 
     if (!res.ok) throw new Error(`reset ${res.status}`);
@@ -443,7 +454,26 @@
       e.preventDefault();
 
       if (!adminUnlocked) {
-        if (adminKeyInput.value.trim().toLowerCase() === ADMIN_KEY) {
+        const key = adminKeyInput.value.trim();
+
+        if (!key) {
+          setHint("enter the key", true);
+          return;
+        }
+
+        setHint("checking…", false);
+
+        try {
+          const ok = await verifyKey(key);
+
+          if (!ok) {
+            adminKeyInput.value = "";
+            adminKeyInput.focus();
+            setHint("wrong key", true);
+            return;
+          }
+
+          adminSecret = key;
           adminUnlocked = true;
           adminKeyField.hidden = true;
           revealProfileFields();
@@ -451,10 +481,8 @@
           adminHandleInput.focus();
           adminHandleInput.select();
           setHint("enter to save · esc to close", false);
-        } else {
-          adminKeyInput.value = "";
-          adminKeyInput.focus();
-          setHint("wrong key", true);
+        } catch (err) {
+          setHint("couldn't reach the server", true);
         }
         return;
       }
