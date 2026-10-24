@@ -1,6 +1,7 @@
 (() => {
   const API_BASE = "https://site-da7f266cd38645a88d82577d4531a2db.freebuff.page";
   const POLL_MS = 30000;
+  const VIEWS = new Set(["recent", "7day", "1month", "overall"]);
 
   const nowEl = document.getElementById("now");
   const nowArt = document.getElementById("nowArt");
@@ -13,14 +14,16 @@
   const tracksEl = document.getElementById("tracks");
   const noteEl = document.getElementById("note");
   const periodsEl = document.getElementById("periods");
+  const listTitle = document.getElementById("listTitle");
   const lastfmLink = document.getElementById("lastfmLink");
   const footLabel = document.getElementById("footLabel");
 
   const state = {
-    period: "7day",
+    view: "recent",
     user: "",
-    topSignature: "",
+    listSignature: "",
     loading: true,
+    token: 0,
   };
 
   const formatNumber = (n) => new Intl.NumberFormat("en-US").format(n);
@@ -71,6 +74,12 @@
     noteEl.hidden = !text;
   }
 
+  function listUrl(view) {
+    return view === "recent"
+      ? `${API_BASE}/api/lastfm?view=recent`
+      : `${API_BASE}/api/lastfm?period=${encodeURIComponent(view)}`;
+  }
+
   /* ---------- now playing ---------- */
 
   function renderNow(track, user) {
@@ -116,26 +125,13 @@
     setArt(nowArt, track.art || "");
   }
 
-  /* ---------- top tracks ---------- */
+  /* ---------- rows ---------- */
 
-  function buildTrack(track, index) {
-    const item = document.createElement("li");
-
-    const link = document.createElement("a");
-    link.className = "track";
-    link.href = track.url || `https://www.last.fm/user/${encodeURIComponent(state.user)}`;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.style.setProperty("--i", String(Math.min(index, 9)));
-    link.title = `${track.title} — ${track.artist}`;
-
-    const rank = document.createElement("span");
-    rank.className = "track-rank";
-    rank.textContent = String(track.rank || index + 1).padStart(2, "0");
-
+  function buildArt(url) {
     const art = document.createElement("span");
     art.className = "track-art";
-    if (track.art) {
+
+    if (url) {
       const img = document.createElement("img");
       img.alt = "";
       img.loading = "lazy";
@@ -143,10 +139,14 @@
       img.width = 44;
       img.height = 44;
       img.onload = () => img.classList.add("is-loaded");
-      img.src = track.art;
+      img.src = url;
       art.appendChild(img);
     }
 
+    return art;
+  }
+
+  function buildInfo(track) {
     const info = document.createElement("span");
     info.className = "track-info";
 
@@ -159,6 +159,34 @@
     artist.textContent = track.artist || "";
 
     info.append(name, artist);
+    return info;
+  }
+
+  function trackHref(track) {
+    return track.url || `https://www.last.fm/user/${encodeURIComponent(state.user)}`;
+  }
+
+  function buildRowShell(track, extraClass, index) {
+    const item = document.createElement("li");
+
+    const link = document.createElement("a");
+    link.className = `track ${extraClass}`;
+    link.href = trackHref(track);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.style.setProperty("--i", String(Math.min(index, 9)));
+    link.title = `${track.title} — ${track.artist}`;
+
+    item.appendChild(link);
+    return { item, link };
+  }
+
+  function buildTopRow(track, index) {
+    const { item, link } = buildRowShell(track, "track-top", index);
+
+    const rank = document.createElement("span");
+    rank.className = "track-rank";
+    rank.textContent = String(track.rank || index + 1).padStart(2, "0");
 
     const plays = document.createElement("span");
     plays.className = "track-plays";
@@ -167,32 +195,68 @@
     playsLabel.textContent = "plays";
     plays.appendChild(playsLabel);
 
-    link.append(rank, art, info, plays);
-    item.appendChild(link);
-
+    link.append(rank, buildArt(track.art), buildInfo(track), plays);
     return item;
   }
 
-  function renderTracks(list) {
+  function buildRecentRow(track, index) {
+    const { item, link } = buildRowShell(track, "track-recent", index);
+
+    const time = document.createElement("span");
+    time.className = "track-time";
+    time.dataset.playing = track.playing ? "1" : "0";
+    if (track.playedAt) time.dataset.played = String(track.playedAt);
+    time.textContent = track.playing ? "now" : track.playedAt ? timeAgo(track.playedAt) : "";
+
+    link.append(buildArt(track.art), buildInfo(track), time);
+    return item;
+  }
+
+  function refreshTimes() {
     if (!tracksEl) return;
 
-    const signature = JSON.stringify(
-      (list || []).map((t) => [t.rank, t.title, t.artist, t.plays])
-    );
+    tracksEl.querySelectorAll(".track-time").forEach((el) => {
+      if (el.dataset.playing === "1") {
+        el.textContent = "now";
+        return;
+      }
 
-    if (signature === state.topSignature) return;
-    state.topSignature = signature;
+      const played = Number(el.dataset.played);
+      if (Number.isFinite(played) && played > 0) el.textContent = timeAgo(played);
+    });
+  }
 
+  /* ---------- lists ---------- */
+
+  function rowSignature(track, view) {
+    return view === "recent"
+      ? [track.title, track.artist, track.playing, track.playedAt]
+      : [track.rank, track.title, track.artist, track.plays];
+  }
+
+  function renderList(list, view) {
+    if (!tracksEl) return;
+
+    const signature = JSON.stringify([view, list.map((t) => rowSignature(t, view))]);
+
+    if (signature === state.listSignature) {
+      refreshTimes();
+      return;
+    }
+
+    state.listSignature = signature;
     tracksEl.textContent = "";
+    tracksEl.classList.toggle("tracks--recent", view === "recent");
 
-    (list || []).forEach((track, index) => {
-      tracksEl.appendChild(buildTrack(track, index));
+    list.forEach((track, index) => {
+      tracksEl.appendChild(view === "recent" ? buildRecentRow(track, index) : buildTopRow(track, index));
     });
   }
 
   function showSkeletons() {
     if (!tracksEl) return;
     tracksEl.textContent = "";
+    tracksEl.classList.remove("tracks--recent");
 
     for (let i = 0; i < 5; i += 1) {
       const item = document.createElement("li");
@@ -221,6 +285,7 @@
   }
 
   function applyPayload(data) {
+    const view = state.view;
     applyUser(data.user);
 
     if (!data.configured) {
@@ -231,7 +296,7 @@
       if (nowAlbum) nowAlbum.textContent = "";
       if (nowLink) nowLink.hidden = true;
       setArt(nowArt, "");
-      renderTracks([]);
+      renderList([], view);
       setNote("music isn't set up yet — check back soon.");
       return;
     }
@@ -252,7 +317,7 @@
       if (nowAlbum) nowAlbum.textContent = "";
       if (nowLink) nowLink.hidden = true;
       setArt(nowArt, "");
-      renderTracks(data.top || []);
+      renderList(data.recent || data.top || [], view);
       setNote(
         data.error === "user_not_found"
           ? "check the last.fm username."
@@ -262,8 +327,14 @@
     }
 
     renderNow(data.now, data.user);
-    renderTracks(data.top || []);
 
+    if (view === "recent") {
+      renderList(data.recent || [], view);
+      setNote((data.recent && data.recent.length) ? "" : "nothing played recently.");
+      return;
+    }
+
+    renderList(data.top || [], view);
     setNote(
       data.topError
         ? "top tracks couldn't load right now."
@@ -273,9 +344,9 @@
     );
   }
 
-  async function load(period, quiet) {
-    const requested = period || state.period;
-    const token = (state.token = (state.token || 0) + 1);
+  async function load(view, quiet) {
+    const requested = VIEWS.has(view) ? view : state.view;
+    const token = (state.token += 1);
 
     if (!quiet && state.loading) {
       showSkeletons();
@@ -283,8 +354,7 @@
     }
 
     try {
-      const url = `${API_BASE}/api/lastfm?period=${encodeURIComponent(requested)}`;
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(listUrl(requested), { cache: "no-store" });
       if (!res.ok) throw new Error(`music ${res.status}`);
 
       const data = await res.json();
@@ -305,49 +375,53 @@
         if (nowTitle) nowTitle.textContent = "couldn't load music";
         if (nowArtist) nowArtist.textContent = "the api didn't answer";
         setArt(nowArt, "");
-        renderTracks([]);
+        renderList([], requested);
       }
 
       setNote("couldn't reach last.fm — trying again shortly.");
     }
   }
 
-  /* ---------- period switch ---------- */
+  /* ---------- tabs ---------- */
 
-  function syncPeriodButtons(period) {
+  function syncTabs(view) {
     if (!periodsEl) return;
 
-    periodsEl.querySelectorAll("button[data-period]").forEach((button) => {
-      const active = button.dataset.period === period;
+    periodsEl.querySelectorAll("button[data-view]").forEach((button) => {
+      const active = button.dataset.view === view;
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", String(active));
     });
+
+    if (listTitle) {
+      listTitle.textContent = view === "recent" ? "recently played" : "top tracks";
+    }
   }
 
   if (periodsEl) {
     periodsEl.addEventListener("click", (e) => {
-      const button = e.target.closest("button[data-period]");
+      const button = e.target.closest("button[data-view]");
       if (!button) return;
 
-      const period = button.dataset.period;
-      if (!period || period === state.period) return;
+      const view = button.dataset.view;
+      if (!VIEWS.has(view) || view === state.view) return;
 
-      state.period = period;
-      syncPeriodButtons(period);
+      state.view = view;
+      syncTabs(view);
       setNote("");
-      load(period, true);
+      load(view, true);
     });
   }
 
   /* ---------- refresh loop ---------- */
 
-  load(state.period, false);
+  load(state.view, false);
 
   window.setInterval(() => {
-    if (document.visibilityState === "visible") load(state.period, true);
+    if (document.visibilityState === "visible") load(state.view, true);
   }, POLL_MS);
 
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") load(state.period, true);
+    if (document.visibilityState === "visible") load(state.view, true);
   });
 })();

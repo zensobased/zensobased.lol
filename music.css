@@ -301,11 +301,16 @@ body.music-page {
 
 .periods {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
   padding: 3px;
   border-radius: 10px;
   border: 1px solid rgba(194, 184, 184, 0.1);
   background: rgba(10, 10, 10, 0.4);
+}
+
+.only-narrow {
+  display: none;
 }
 
 .periods button {
@@ -376,6 +381,18 @@ body.music-page {
   font-variant-numeric: tabular-nums;
   color: rgba(194, 184, 184, 0.32);
   text-align: right;
+}
+
+.track-recent {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+
+.track-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(194, 184, 184, 0.4);
+  white-space: nowrap;
+  padding-left: 6px;
 }
 
 .track-art {
@@ -609,6 +626,22 @@ body.music-page {
     grid-template-columns: 18px 40px minmax(0, 1fr) auto;
     gap: 10px;
     padding: 7px 8px;
+  }
+
+  .track-recent {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .only-wide {
+    display: none;
+  }
+
+  .only-narrow {
+    display: inline;
+  }
+
+  .periods button {
+    padding: 6px 8px;
   }
 
   .track-art {

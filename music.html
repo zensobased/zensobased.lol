@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#080808" />
   <meta name="color-scheme" content="dark" />
-  <title>zen — music</title>
+  <title>music</title>
   <meta name="description" content="What zen is listening to, straight from last.fm." />
   <link rel="icon" href="assets/pfp.png" />
   <link rel="preload" href="assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="style.css?v=8" />
-  <link rel="stylesheet" href="music.css?v=1" />
+  <link rel="stylesheet" href="music.css?v=2" />
 </head>
 <body class="music-page">
   <div class="bg-image" aria-hidden="true"></div>
@@ -25,7 +25,7 @@
         </svg>
         <span>back</span>
       </a>
-      <span class="nav-tag">zen / music</span>
+      <span class="nav-tag">music</span>
     </nav>
 
     <section class="now" id="now" data-state="loading" aria-busy="true">
@@ -53,11 +53,14 @@
 
     <section class="top reveal" data-delay="2">
       <div class="top-head">
-        <h2 class="top-title">top tracks</h2>
-        <div class="periods" id="periods" role="group" aria-label="Top tracks range">
-          <button type="button" data-period="7day" class="is-active" aria-pressed="true">7 days</button>
-          <button type="button" data-period="1month" aria-pressed="false">1 month</button>
-          <button type="button" data-period="overall" aria-pressed="false">all time</button>
+        <h2 class="top-title" id="listTitle">recently played</h2>
+        <div class="periods" id="periods" role="group" aria-label="Music view">
+          <button type="button" data-view="recent" class="is-active" aria-pressed="true">
+            <span class="only-wide">recently played</span><span class="only-narrow">recent</span>
+          </button>
+          <button type="button" data-view="7day" aria-pressed="false">7 days</button>
+          <button type="button" data-view="1month" aria-pressed="false">1 month</button>
+          <button type="button" data-view="overall" aria-pressed="false">all time</button>
         </div>
       </div>
 
@@ -71,6 +74,6 @@
     </p>
   </main>
 
-  <script src="music.js?v=1"></script>
+  <script src="music.js?v=2"></script>
 </body>
 </html>
