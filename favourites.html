@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#080808" />
+  <meta name="color-scheme" content="dark" />
+  <title>favourites</title>
+  <meta name="description" content="Albums and tracks zen keeps coming back to." />
+  <link rel="icon" href="assets/pfp.png" />
+  <link rel="preload" href="assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="music.css?v=2" />
+  <link rel="stylesheet" href="favourites.css?v=2" />
+</head>
+<body class="music-page fav-page">
+  <div class="bg-image" aria-hidden="true"></div>
+  <div class="bg-shade" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main class="music fav">
+    <nav class="music-nav reveal" data-delay="0">
+      <a class="back" href="index.html">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M11.29 4.29a1 1 0 0 1 0 1.42L6.41 10.6H19a1 1 0 0 1 0 2H6.41l4.88 4.88a1 1 0 0 1-1.42 1.42l-6.58-6.59a1 1 0 0 1 0-1.42l6.58-6.59a1 1 0 0 1 1.42 0z" />
+        </svg>
+        <span>back</span>
+      </a>
+      <span class="nav-tag">favourites</span>
+    </nav>
+
+    <header class="fav-head reveal" data-delay="1">
+      <div class="fav-heading">
+        <div class="fav-title-row">
+          <h1 class="fav-title" id="favTitle">favourites</h1>
+          <span class="fav-count" id="favCount" hidden></span>
+        </div>
+        <p class="fav-sub">albums and tracks worth keeping</p>
+      </div>
+
+      <button class="fav-gear" id="favGear" type="button" aria-label="Favourites dev settings" title="dev settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 8h9M17 8h3M4 16h3M11 16h9" />
+          <circle cx="15" cy="8" r="2.2" />
+          <circle cx="9" cy="16" r="2.2" />
+        </svg>
+      </button>
+    </header>
+
+    <ul class="fav-grid" id="favGrid"></ul>
+
+    <p class="fav-empty reveal" id="favEmpty" data-delay="2" hidden>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12 2.6l2.87 5.82 6.42.93-4.64 4.53 1.09 6.4L12 17.25l-5.74 3.03 1.09-6.4L2.71 9.35l6.42-.93z" />
+      </svg>
+      <span>nothing saved yet</span>
+    </p>
+
+    <p class="note" id="favStatus" aria-live="polite" hidden></p>
+  </main>
+
+  <!-- add modal -->
+  <div class="fav-modal" id="favModal" hidden>
+    <div class="fav-panel" role="dialog" aria-modal="true" aria-labelledby="favModalTitle">
+      <div class="fav-panel-head">
+        <p class="fav-panel-title" id="favModalTitle">add to favourites</p>
+        <button class="fav-close" id="favClose" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="fav-kinds" role="group" aria-label="Search type">
+        <button type="button" data-kind="album" class="is-active" aria-pressed="true">albums</button>
+        <button type="button" data-kind="track" aria-pressed="false">tracks</button>
+      </div>
+
+      <label class="fav-search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M10 4a6 6 0 1 0 3.71 10.7l4.8 4.8 1.41-1.42-4.8-4.8A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
+        </svg>
+        <input id="favSearch" type="search" placeholder="search albums…" autocomplete="off" spellcheck="false" aria-label="Search albums or tracks" />
+      </label>
+
+      <div class="fav-results" id="favResults"></div>
+      <p class="fav-hint" id="favHint" aria-live="polite">type an album name</p>
+    </div>
+  </div>
+
+  <!-- favourites dev settings -->
+  <div class="admin" id="favDevPanel" hidden>
+    <form class="admin-panel" id="favDevForm" autocomplete="off">
+      <p class="admin-title">favourites dev</p>
+
+      <label class="admin-field" id="favKeyField">
+        <span>key</span>
+        <input type="password" id="favKey" placeholder="enter key" />
+      </label>
+
+      <p class="admin-text" id="favDevStatus" hidden>dev mode is on — the + tile and × buttons are live.</p>
+
+      <button class="admin-submit" type="submit" id="favDevSubmit">enter</button>
+      <button class="admin-submit admin-reset" type="button" id="favLock" hidden>lock</button>
+
+      <p class="admin-hint" id="favDevHint">alt + y to close</p>
+    </form>
+  </div>
+
+  <script src="favourites.js?v=2"></script>
+</body>
+</html>
