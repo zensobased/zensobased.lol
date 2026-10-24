@@ -9,6 +9,7 @@
     bio: "yooo wsp",
     location: "Tokyo, Japan",
     views: 1042,
+    lastfm: "",
   };
 
   /* ---------- elements ---------- */
@@ -38,10 +39,12 @@
   const adminHandleField = document.getElementById("adminHandleField");
   const adminBioField = document.getElementById("adminBioField");
   const adminLocationField = document.getElementById("adminLocationField");
+  const adminLastfmField = document.getElementById("adminLastfmField");
   const adminViewsField = document.getElementById("adminViewsField");
   const adminHandleInput = document.getElementById("adminHandle");
   const adminBioInput = document.getElementById("adminBio");
   const adminLocationInput = document.getElementById("adminLocation");
+  const adminLastfmInput = document.getElementById("adminLastfm");
   const adminViewsInput = document.getElementById("adminViews");
   const adminResetBtn = document.getElementById("adminReset");
   const adminHint = document.getElementById("adminHint");
@@ -92,6 +95,10 @@
     if (typeof data.location === "string" && data.location.trim()) {
       state.location = data.location.trim();
       if (locationEl) locationEl.textContent = state.location;
+    }
+
+    if (typeof data.lastfm === "string") {
+      state.lastfm = data.lastfm.trim();
     }
 
     const nextViews = Number(data.views);
@@ -334,6 +341,7 @@
     if (adminHandleInput) adminHandleInput.value = handleEl ? handleEl.textContent : "";
     if (adminBioInput) adminBioInput.value = bioEl ? bioEl.textContent : "";
     if (adminLocationInput) adminLocationInput.value = locationEl ? locationEl.textContent : "";
+    if (adminLastfmInput) adminLastfmInput.value = state.lastfm || "";
     if (adminViewsInput) adminViewsInput.value = String(state.views);
   }
 
@@ -342,6 +350,7 @@
       adminHandleField,
       adminBioField,
       adminLocationField,
+      adminLastfmField,
       adminViewsField,
       adminResetBtn,
     ].forEach((field) => {
@@ -494,6 +503,7 @@
         handle: adminHandleInput.value.trim() || state.handle,
         bio: adminBioInput.value.trim(),
         location: adminLocationInput.value.trim() || state.location,
+        lastfm: adminLastfmInput ? adminLastfmInput.value.trim().toLowerCase() : "",
         views: nextViews,
       };
 

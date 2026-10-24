@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#080808" />
+  <meta name="color-scheme" content="dark" />
+  <title>zen — music</title>
+  <meta name="description" content="What zen is listening to, straight from last.fm." />
+  <link rel="icon" href="assets/pfp.png" />
+  <link rel="preload" href="assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="music.css?v=1" />
+</head>
+<body class="music-page">
+  <div class="bg-image" aria-hidden="true"></div>
+  <div class="bg-shade" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main class="music">
+    <nav class="music-nav reveal" data-delay="0">
+      <a class="back" href="index.html">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M11.29 4.29a1 1 0 0 1 0 1.42L6.41 10.6H19a1 1 0 0 1 0 2H6.41l4.88 4.88a1 1 0 0 1-1.42 1.42l-6.58-6.59a1 1 0 0 1 0-1.42l6.58-6.59a1 1 0 0 1 1.42 0z" />
+        </svg>
+        <span>back</span>
+      </a>
+      <span class="nav-tag">zen / music</span>
+    </nav>
+
+    <section class="now" id="now" data-state="loading" aria-busy="true">
+      <div class="now-art" id="nowArtBox">
+        <img id="nowArt" alt="" width="152" height="152" decoding="async" />
+        <span class="art-fallback" aria-hidden="true">♪</span>
+      </div>
+
+      <div class="now-body">
+        <p class="eyebrow">
+          <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span id="nowStatus">loading</span>
+        </p>
+        <h1 class="now-title" id="nowTitle">…</h1>
+        <p class="now-artist" id="nowArtist"></p>
+        <p class="now-album" id="nowAlbum"></p>
+      </div>
+
+      <a class="now-link" id="nowLink" href="https://www.last.fm" target="_blank" rel="noopener noreferrer" aria-label="Open this track on last.fm" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M14 4h6v6h-2V7.41l-8.29 8.3-1.42-1.42L16.59 6H14V4zM5 6h5v2H5v11h11v-5h2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+        </svg>
+      </a>
+    </section>
+
+    <section class="top reveal" data-delay="2">
+      <div class="top-head">
+        <h2 class="top-title">top tracks</h2>
+        <div class="periods" id="periods" role="group" aria-label="Top tracks range">
+          <button type="button" data-period="7day" class="is-active" aria-pressed="true">7 days</button>
+          <button type="button" data-period="1month" aria-pressed="false">1 month</button>
+          <button type="button" data-period="overall" aria-pressed="false">all time</button>
+        </div>
+      </div>
+
+      <ol class="tracks" id="tracks" aria-live="polite"></ol>
+      <p class="note" id="note" hidden></p>
+    </section>
+
+    <p class="music-foot reveal" data-delay="3">
+      <span id="footLabel">powered by</span>
+      <a id="lastfmLink" href="https://www.last.fm" target="_blank" rel="noopener noreferrer">last.fm</a>
+    </p>
+  </main>
+
+  <script src="music.js?v=1"></script>
+</body>
+</html>
