@@ -601,7 +601,8 @@ body {
   display: none;
 }
 
-.admin-field input {
+.admin-field input,
+.admin-field select {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
@@ -613,8 +614,37 @@ body {
   outline: none;
 }
 
-.admin-field input:focus {
+.admin-field select {
+  cursor: pointer;
+}
+
+.admin-field select option {
+  background: #0a0a0a;
+  color: var(--fg);
+}
+
+.admin-field input:focus,
+.admin-field select:focus {
   border-color: rgba(194, 184, 184, 0.45);
+}
+
+.admin-field input[type="file"] {
+  padding: 8px;
+  font-size: 12px;
+  color: rgba(194, 184, 184, 0.7);
+  cursor: pointer;
+}
+
+.admin-field input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 6px 9px;
+  border: 1px solid rgba(194, 184, 184, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
 }
 
 .admin-submit {

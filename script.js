@@ -10,6 +10,9 @@
     location: "Tokyo, Japan",
     views: 1042,
     lastfm: "",
+    song: "assets/raininglol.mp3",
+    songKey: "",
+    songName: "raininglol",
   };
 
   /* ---------- elements ---------- */
@@ -46,6 +49,10 @@
   const adminLocationInput = document.getElementById("adminLocation");
   const adminLastfmInput = document.getElementById("adminLastfm");
   const adminViewsInput = document.getElementById("adminViews");
+  const adminSongField = document.getElementById("adminSongField");
+  const adminSongSelect = document.getElementById("adminSong");
+  const adminSongUploadField = document.getElementById("adminSongUploadField");
+  const adminSongFile = document.getElementById("adminSongFile");
   const adminResetBtn = document.getElementById("adminReset");
   const adminHint = document.getElementById("adminHint");
 
@@ -58,6 +65,8 @@
   let viewsLocked = false;
   let adminUnlocked = false;
   let adminSecret = "";
+  let songs = [];
+  let songsLoading = false;
 
   /* ---------- profile cache ---------- */
 
@@ -99,6 +108,19 @@
 
     if (typeof data.lastfm === "string") {
       state.lastfm = data.lastfm.trim();
+    }
+
+    if (typeof data.songKey === "string") {
+      state.songKey = data.songKey.trim();
+    }
+
+    if (typeof data.songName === "string" && data.songName.trim()) {
+      state.songName = data.songName.trim();
+    }
+
+    if (typeof data.song === "string" && data.song.trim()) {
+      state.song = data.song.trim();
+      applySong(state.song);
     }
 
     const nextViews = Number(data.views);
@@ -192,6 +214,33 @@
   }
 
   /* ---------- audio ---------- */
+
+  function applySong(url) {
+    if (!url || !song) return;
+
+    let current = "";
+    let next = "";
+
+    try {
+      current = new URL(song.currentSrc || song.src || "", window.location.href).href;
+      next = new URL(url, window.location.href).href;
+    } catch (err) {
+      return;
+    }
+
+    if (!next || current === next) return;
+
+    const wasPlaying = !song.paused;
+    song.src = url;
+    song.load();
+
+    if (wasPlaying) {
+      const started = song.play();
+      if (started && typeof started.then === "function") started.catch(syncAudio);
+    }
+
+    syncAudio();
+  }
 
   function syncAudio() {
     const playing = !song.paused;
@@ -337,12 +386,73 @@
     adminHint.classList.toggle("is-error", Boolean(isError));
   }
 
+  function renderSongOptions() {
+    if (!adminSongSelect) return;
+
+    const wanted = adminSongSelect.value || state.songKey || "";
+    const list = songs.length
+      ? [...songs]
+      : [{ id: "", name: "raininglol", builtin: true }];
+
+    if (wanted && !list.some((item) => (item.id || "") === wanted)) {
+      list.push({ id: wanted, name: state.songName || "current song" });
+    }
+
+    adminSongSelect.textContent = "";
+
+    list.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.id || "";
+      option.textContent = item.builtin ? `${item.name} (default)` : item.name;
+      adminSongSelect.appendChild(option);
+    });
+
+    adminSongSelect.value = list.some((item) => (item.id || "") === wanted)
+      ? wanted
+      : "";
+  }
+
+  async function loadSongs() {
+    if (!adminSongSelect || songsLoading) return;
+
+    songsLoading = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/songs`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`songs ${res.status}`);
+
+      const data = await res.json();
+      songs = Array.isArray(data.songs) ? data.songs : [];
+      renderSongOptions();
+    } catch (err) {
+      renderSongOptions();
+    } finally {
+      songsLoading = false;
+    }
+  }
+
   function fillAdminFields() {
     if (adminHandleInput) adminHandleInput.value = handleEl ? handleEl.textContent : "";
     if (adminBioInput) adminBioInput.value = bioEl ? bioEl.textContent : "";
     if (adminLocationInput) adminLocationInput.value = locationEl ? locationEl.textContent : "";
     if (adminLastfmInput) adminLastfmInput.value = state.lastfm || "";
     if (adminViewsInput) adminViewsInput.value = String(state.views);
+
+    if (adminSongSelect) {
+      const wanted = state.songKey || "";
+      const hasOption = Array.from(adminSongSelect.options).some(
+        (option) => option.value === wanted
+      );
+
+      if (wanted && !hasOption) {
+        const option = document.createElement("option");
+        option.value = wanted;
+        option.textContent = state.songName || "current song";
+        adminSongSelect.appendChild(option);
+      }
+
+      adminSongSelect.value = wanted;
+    }
   }
 
   function revealProfileFields() {
@@ -351,6 +461,8 @@
       adminBioField,
       adminLocationField,
       adminLastfmField,
+      adminSongField,
+      adminSongUploadField,
       adminViewsField,
       adminResetBtn,
     ].forEach((field) => {
@@ -364,6 +476,7 @@
 
     if (adminUnlocked) {
       fillAdminFields();
+      loadSongs().then(fillAdminFields);
       adminHandleInput.focus();
       adminHandleInput.select();
       setHint("enter to save · esc to close", false);
@@ -458,6 +571,63 @@
     });
   }
 
+  if (adminSongFile) {
+    adminSongFile.addEventListener("change", async () => {
+      const file = adminSongFile.files && adminSongFile.files[0];
+      if (!file) return;
+
+      if (file.size > 20 * 1024 * 1024) {
+        setHint("song is too large — 20mb max", true);
+        adminSongFile.value = "";
+        return;
+      }
+
+      setHint("uploading song…", false);
+
+      try {
+        const form = new FormData();
+        form.append("file", file);
+
+        const res = await fetch(`${API_BASE}/api/songs`, {
+          method: "POST",
+          headers: { "x-admin-key": adminSecret },
+          body: form,
+        });
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (err) {
+          data = null;
+        }
+
+        if (!res.ok || !data || !data.song) {
+          const message =
+            data && data.error === "file too large"
+              ? "song is too large — 20mb max"
+              : "couldn't upload that song";
+          setHint(message, true);
+          return;
+        }
+
+        if (Array.isArray(data.songs)) {
+          songs = data.songs;
+        } else {
+          songs = songs.filter((item) => (item.id || "") !== data.song.id);
+          songs.push(data.song);
+        }
+
+        renderSongOptions();
+        if (adminSongSelect) adminSongSelect.value = data.song.id;
+        setHint("uploaded · enter to switch", false);
+      } catch (err) {
+        setHint("couldn't upload that song", true);
+      } finally {
+        adminSongFile.value = "";
+      }
+    });
+  }
+
   if (adminForm) {
     adminForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -487,6 +657,7 @@
           adminKeyField.hidden = true;
           revealProfileFields();
           fillAdminFields();
+          loadSongs().then(fillAdminFields);
           adminHandleInput.focus();
           adminHandleInput.select();
           setHint("enter to save · esc to close", false);
@@ -504,6 +675,7 @@
         bio: adminBioInput.value.trim(),
         location: adminLocationInput.value.trim() || state.location,
         lastfm: adminLastfmInput ? adminLastfmInput.value.trim().toLowerCase() : "",
+        song: adminSongSelect ? adminSongSelect.value : state.songKey || "",
         views: nextViews,
       };
 
