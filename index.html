@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://site-da7f266cd38645a88d82577d4531a2db.freebuff.page/api/og.png" />
   <link rel="icon" id="favicon" href="assets/pfp.png" />
   <link rel="preload" href="assets/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=10" />
+  <link rel="stylesheet" href="style.css?v=11" />
 </head>
 <body>
   <!-- background -->
@@ -155,6 +155,18 @@
         <input type="file" id="adminSongFile" accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/wav,audio/webm,audio/flac" />
       </label>
 
+      <label class="admin-field" id="adminBackgroundField" hidden>
+        <span>background</span>
+        <select id="adminBackground">
+          <option value="">default</option>
+        </select>
+      </label>
+
+      <label class="admin-field" id="adminBackgroundUploadField" hidden>
+        <span>upload image / video · 30mb</span>
+        <input type="file" id="adminBackgroundFile" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/quicktime,video/x-m4v" />
+      </label>
+
       <label class="admin-field" id="adminViewsField" hidden>
         <span>views</span>
         <input type="number" id="adminViews" min="0" step="1" inputmode="numeric" />
@@ -182,6 +194,7 @@
     </a>
   </div>
 
-  <script src="script.js?v=9"></script>
+  <script src="background.js?v=1"></script>
+  <script src="script.js?v=10"></script>
 </body>
 </html>

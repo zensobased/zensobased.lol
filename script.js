@@ -13,6 +13,10 @@
     song: "assets/raininglol.mp3",
     songKey: "",
     songName: "raininglol",
+    background: "",
+    backgroundKey: "",
+    backgroundName: "",
+    backgroundKind: "",
   };
 
   /* ---------- elements ---------- */
@@ -53,6 +57,10 @@
   const adminSongSelect = document.getElementById("adminSong");
   const adminSongUploadField = document.getElementById("adminSongUploadField");
   const adminSongFile = document.getElementById("adminSongFile");
+  const adminBackgroundField = document.getElementById("adminBackgroundField");
+  const adminBackgroundSelect = document.getElementById("adminBackground");
+  const adminBackgroundUploadField = document.getElementById("adminBackgroundUploadField");
+  const adminBackgroundFile = document.getElementById("adminBackgroundFile");
   const adminResetBtn = document.getElementById("adminReset");
   const adminHint = document.getElementById("adminHint");
 
@@ -67,6 +75,8 @@
   let adminSecret = "";
   let songs = [];
   let songsLoading = false;
+  let backgrounds = [];
+  let backgroundsLoading = false;
 
   /* ---------- profile cache ---------- */
 
@@ -121,6 +131,22 @@
     if (typeof data.song === "string" && data.song.trim()) {
       state.song = data.song.trim();
       applySong(state.song);
+    }
+
+    if (typeof data.background === "string") {
+      state.background = data.background.trim();
+    }
+
+    if (typeof data.backgroundKey === "string") {
+      state.backgroundKey = data.backgroundKey.trim();
+    }
+
+    if (typeof data.backgroundName === "string") {
+      state.backgroundName = data.backgroundName.trim();
+    }
+
+    if (typeof data.backgroundKind === "string") {
+      state.backgroundKind = data.backgroundKind.trim();
     }
 
     const nextViews = Number(data.views);
@@ -431,6 +457,54 @@
     }
   }
 
+  function renderBackgroundOptions() {
+    if (!adminBackgroundSelect) return;
+
+    const wanted = adminBackgroundSelect.value || state.backgroundKey || "";
+    const list = backgrounds.slice();
+
+    if (wanted && !list.some((item) => (item.id || "") === wanted)) {
+      list.push({ id: wanted, name: state.backgroundName || "current background" });
+    }
+
+    adminBackgroundSelect.textContent = "";
+
+    const fallback = document.createElement("option");
+    fallback.value = "";
+    fallback.textContent = "default";
+    adminBackgroundSelect.appendChild(fallback);
+
+    list.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.id || "";
+      option.textContent = `${item.name}${item.kind === "video" ? " · video" : ""}`;
+      adminBackgroundSelect.appendChild(option);
+    });
+
+    adminBackgroundSelect.value = list.some((item) => (item.id || "") === wanted)
+      ? wanted
+      : "";
+  }
+
+  async function loadBackgrounds() {
+    if (!adminBackgroundSelect || backgroundsLoading) return;
+
+    backgroundsLoading = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/backgrounds`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`backgrounds ${res.status}`);
+
+      const data = await res.json();
+      backgrounds = Array.isArray(data.backgrounds) ? data.backgrounds : [];
+      renderBackgroundOptions();
+    } catch (err) {
+      renderBackgroundOptions();
+    } finally {
+      backgroundsLoading = false;
+    }
+  }
+
   function fillAdminFields() {
     if (adminHandleInput) adminHandleInput.value = handleEl ? handleEl.textContent : "";
     if (adminBioInput) adminBioInput.value = bioEl ? bioEl.textContent : "";
@@ -453,6 +527,22 @@
 
       adminSongSelect.value = wanted;
     }
+
+    if (adminBackgroundSelect) {
+      const wanted = state.backgroundKey || "";
+      const hasOption = Array.from(adminBackgroundSelect.options).some(
+        (option) => option.value === wanted
+      );
+
+      if (wanted && !hasOption) {
+        const option = document.createElement("option");
+        option.value = wanted;
+        option.textContent = state.backgroundName || "current background";
+        adminBackgroundSelect.appendChild(option);
+      }
+
+      adminBackgroundSelect.value = wanted;
+    }
   }
 
   function revealProfileFields() {
@@ -463,6 +553,8 @@
       adminLastfmField,
       adminSongField,
       adminSongUploadField,
+      adminBackgroundField,
+      adminBackgroundUploadField,
       adminViewsField,
       adminResetBtn,
     ].forEach((field) => {
@@ -476,7 +568,7 @@
 
     if (adminUnlocked) {
       fillAdminFields();
-      loadSongs().then(fillAdminFields);
+      Promise.all([loadSongs(), loadBackgrounds()]).then(fillAdminFields);
       adminHandleInput.focus();
       adminHandleInput.select();
       setHint("enter to save · esc to close", false);
@@ -564,6 +656,7 @@
       try {
         const data = await resetProfile();
         adoptServerProfile(data);
+        if (window.ZenBackground) window.ZenBackground.refresh();
         setHint("reset · esc to close", false);
       } catch (err) {
         setHint("couldn't reset — try again", true);
@@ -628,6 +721,65 @@
     });
   }
 
+  if (adminBackgroundFile) {
+    adminBackgroundFile.addEventListener("change", async () => {
+      const file = adminBackgroundFile.files && adminBackgroundFile.files[0];
+      if (!file) return;
+
+      if (file.size > 30 * 1024 * 1024) {
+        setHint("background is too large — 30mb max", true);
+        adminBackgroundFile.value = "";
+        return;
+      }
+
+      setHint("uploading background…", false);
+
+      try {
+        const form = new FormData();
+        form.append("file", file);
+
+        const res = await fetch(`${API_BASE}/api/backgrounds`, {
+          method: "POST",
+          headers: { "x-admin-key": adminSecret },
+          body: form,
+        });
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (err) {
+          data = null;
+        }
+
+        if (!res.ok || !data || !data.background) {
+          const message =
+            data && data.error === "file too large"
+              ? "background is too large — 30mb max"
+              : "couldn't upload that background";
+          setHint(message, true);
+          return;
+        }
+
+        if (Array.isArray(data.backgrounds)) {
+          backgrounds = data.backgrounds;
+        } else {
+          backgrounds = backgrounds.filter(
+            (item) => (item.id || "") !== data.background.id
+          );
+          backgrounds.push(data.background);
+        }
+
+        renderBackgroundOptions();
+        if (adminBackgroundSelect) adminBackgroundSelect.value = data.background.id;
+        setHint("uploaded · enter to apply", false);
+      } catch (err) {
+        setHint("couldn't upload that background", true);
+      } finally {
+        adminBackgroundFile.value = "";
+      }
+    });
+  }
+
   if (adminForm) {
     adminForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -657,7 +809,7 @@
           adminKeyField.hidden = true;
           revealProfileFields();
           fillAdminFields();
-          loadSongs().then(fillAdminFields);
+          Promise.all([loadSongs(), loadBackgrounds()]).then(fillAdminFields);
           adminHandleInput.focus();
           adminHandleInput.select();
           setHint("enter to save · esc to close", false);
@@ -676,6 +828,9 @@
         location: adminLocationInput.value.trim() || state.location,
         lastfm: adminLastfmInput ? adminLastfmInput.value.trim().toLowerCase() : "",
         song: adminSongSelect ? adminSongSelect.value : state.songKey || "",
+        background: adminBackgroundSelect
+          ? adminBackgroundSelect.value
+          : state.backgroundKey || "",
         views: nextViews,
       };
 
@@ -684,6 +839,7 @@
       try {
         const data = await saveProfile(payload);
         adoptServerProfile(data);
+        if (window.ZenBackground) window.ZenBackground.refresh();
         setHint("saved · esc to close", false);
       } catch (err) {
         if (err.status === 401) setHint("wrong key", true);

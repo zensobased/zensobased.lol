@@ -57,7 +57,19 @@ body {
   position: fixed;
   inset: 0;
   z-index: -2;
+  overflow: hidden;
   background: url("assets/bg.webp") center center / cover no-repeat;
+}
+
+.bg-image .site-bg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
 }
 
 .bg-shade {
